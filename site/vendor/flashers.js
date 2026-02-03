@@ -40,8 +40,10 @@ window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, lo
 
   try {
     transport = new Transport(selectedPort, true);
+    const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
+
     try {
-      await transport.connect(baudRate);
+      await loader.main();
     } catch (err) {
       const message = String(err?.message || err || "");
       if (message.includes("already open")) {
@@ -50,14 +52,11 @@ window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, lo
         } catch (closeErr) {
           // ignore close failures
         }
-        await transport.connect(baudRate);
+        await loader.main();
       } else {
         throw err;
       }
     }
-
-    const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
-    await loader.main();
 
     const binaryString = bufferToBinaryString(buffer);
     await loader.writeFlash({
