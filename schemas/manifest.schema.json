@@ -94,6 +94,7 @@
           "file": { "type": "string", "minLength": 1, "maxLength": 120 },
           "type": { "type": "string", "enum": ["bin", "uf2", "hex"] },
           "url": { "type": "string", "minLength": 5, "maxLength": 300 },
+          "flash_url": { "type": "string", "minLength": 5, "maxLength": 300 },
           "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
           "size": { "type": "integer", "minimum": 1 },
           "variant": { "type": "string", "minLength": 0, "maxLength": 80 },

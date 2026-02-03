@@ -430,10 +430,11 @@ function renderCards() {
     const artifact = (item.artifacts || [])[0] || {};
     const method = inferFlashMethod(item, artifact);
     const mcuParam = (item.mcu || []).join(",");
-    const flashHref = artifact.url
-      ? `flash.html?url=${encodeURIComponent(artifact.url)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
+    const flashSource = artifact.flash_url || artifact.url || "";
+    const flashHref = flashSource
+      ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
       : "#";
-    const flashLink = artifact.url
+    const flashLink = flashSource
       ? `<a class="btn ghost" href="${flashHref}">Flash</a>`
       : `<span class="btn ghost disabled">Flash</span>`;
 
@@ -560,10 +561,11 @@ function openDrawer(item) {
   if (method === "rp2040") flashLabel = "UF2 Drag / CLI";
   if (method === "stm32") flashLabel = navigator.usb ? "Web DFU / CLI" : "CLI (DFU)";
   const mcuParam = (item.mcu || []).join(",");
-  const flashHref = artifact.url
-    ? `flash.html?url=${encodeURIComponent(artifact.url)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
+  const flashSource = artifact.flash_url || artifact.url || "";
+  const flashHref = flashSource
+    ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
     : "#";
-  const flashLink = artifact.url ? `<a class="btn primary" href="${flashHref}">Flash</a>` : "";
+  const flashLink = flashSource ? `<a class="btn primary" href="${flashHref}">Flash</a>` : "";
 
   ui.drawerBody.innerHTML = `
     <div class="detail-hero">

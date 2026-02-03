@@ -27,6 +27,7 @@
       "file": "firmware.bin",
       "type": "bin",
       "url": "https://github.com/vicliu624/LoFiBox/releases/download/v0.1.0-alpha/firmware.bin",
+      "flash_url": "assets/firmware/lofibox-v0.1.0-alpha.bin",
       "sha256": "82278dbc4f30d068b461410f4e7c83a5be2018e3981bf6ae32a0a4ae81c0f575"
     }
   ],

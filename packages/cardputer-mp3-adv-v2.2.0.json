@@ -27,6 +27,7 @@
       "file": "firmware_v2.2.0.bin",
       "type": "bin",
       "url": "https://github.com/vicliu624/CardPuter_Mp3_Adv/releases/download/v2.2.0/firmware_v2.2.0.bin",
+      "flash_url": "assets/firmware/cardputer-mp3-adv-v2.2.0.bin",
       "sha256": "f92b8b62e9c6aa65c52777e9ea5b314cfc84ca6338067214c33ba721d2b1d0ea"
     }
   ],

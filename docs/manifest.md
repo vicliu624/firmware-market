@@ -25,6 +25,7 @@ packages/mydevice-lorawan-v1.2.3.json
 - `publisher` (name, github, repo)
 - `release` (date, notes)
 - `artifacts` (array of files with url + sha256)
+  - Optional `flash_url` for same-origin Web Flash (avoid CORS issues)
 
 ## Optional Fields
 

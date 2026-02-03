@@ -28,6 +28,7 @@
       "file": "firmware.bin",
       "type": "bin",
       "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.4-alpha/firmware.bin",
+      "flash_url": "assets/firmware/trail-mate-v0.1.4-alpha.bin",
       "sha256": "77bf80ba6899e8f85df5dfa45cbd42512014ea6283f1c0ef4f3b43a27f2f7666",
       "variant": "cn470"
     }
