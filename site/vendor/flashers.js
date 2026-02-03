@@ -13,9 +13,17 @@ async function loadWebDfu() {
 }
 
 window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, log, progress }) => {
+  const terminal = {
+    log: (msg) => log(String(msg)),
+    info: (msg) => log(String(msg)),
+    warn: (msg) => log(String(msg)),
+    error: (msg) => log(String(msg)),
+    write: (msg) => log(String(msg)),
+    clean: () => {}
+  };
   const port = await requestPort();
   const transport = new Transport(port);
-  const loader = new ESPLoader({ transport, baudrate: baudRate, terminal: { log } });
+  const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
   await loader.connect();
   await loader.flashData(buffer, 0x0, progress);
 };

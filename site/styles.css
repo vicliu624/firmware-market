@@ -322,9 +322,8 @@ a {
 }
 
 .results-grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-count: 2;
+  column-gap: 20px;
 }
 
 .card {
@@ -332,8 +331,11 @@ a {
   border-radius: 24px;
   box-shadow: 0 20px 60px rgba(30, 27, 22, 0.14);
   overflow: hidden;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
+  width: 100%;
+  margin: 0 0 20px;
+  break-inside: avoid;
   animation: rise 0.4s ease forwards;
   opacity: 0;
   transform: translateY(10px);
@@ -732,6 +734,6 @@ a {
   }
 
   .results-grid {
-    grid-template-columns: 1fr;
+    column-count: 1;
   }
 }
