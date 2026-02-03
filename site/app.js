@@ -431,8 +431,9 @@ function renderCards() {
     const method = inferFlashMethod(item, artifact);
     const mcuParam = (item.mcu || []).join(",");
     const flashSource = artifact.flash_url || artifact.url || "";
+    const flashOffset = artifact.flash?.offset || (method === "esp32" ? "0x10000" : "");
     const flashHref = flashSource
-      ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
+      ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}${flashOffset ? `&offset=${encodeURIComponent(flashOffset)}` : ""}`
       : "#";
     const flashLink = flashSource
       ? `<a class="btn ghost" href="${flashHref}">Flash</a>`
@@ -562,8 +563,9 @@ function openDrawer(item) {
   if (method === "stm32") flashLabel = navigator.usb ? "Web DFU / CLI" : "CLI (DFU)";
   const mcuParam = (item.mcu || []).join(",");
   const flashSource = artifact.flash_url || artifact.url || "";
+  const flashOffset = artifact.flash?.offset || (method === "esp32" ? "0x10000" : "");
   const flashHref = flashSource
-    ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
+    ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}${flashOffset ? `&offset=${encodeURIComponent(flashOffset)}` : ""}`
     : "#";
   const flashLink = flashSource ? `<a class="btn primary" href="${flashHref}">Flash</a>` : "";
 

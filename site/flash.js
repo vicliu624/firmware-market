@@ -3,6 +3,7 @@ const firmwareUrl = params.get("url") || "";
 const firmwareName = params.get("name") || "Unknown";
 const firmwareSha = (params.get("sha") || "").toLowerCase();
 const preferredMethod = params.get("method") || "";
+const firmwareOffset = params.get("offset") || "";
 const firmwareMcu = (params.get("mcu") || "").split(",").map((m) => m.trim()).filter(Boolean);
 const baudRate = Number(params.get("baud") || 115200);
 
@@ -172,6 +173,7 @@ async function flashEsp32() {
       await window.FirmwareFlashers.esp32({
         url: firmwareUrl,
         buffer,
+        offset: firmwareOffset,
         baudRate,
         port,
         requestPort: () => navigator.serial.requestPort(),

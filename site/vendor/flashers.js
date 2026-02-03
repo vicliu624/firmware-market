@@ -22,7 +22,20 @@ function bufferToBinaryString(buffer) {
   return result;
 }
 
-window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, log, progress }) => {
+function parseOffset(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = String(value).trim().toLowerCase();
+  if (!text) return null;
+  if (text.startsWith("0x")) {
+    const parsed = parseInt(text.slice(2), 16);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  const parsed = parseInt(text, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+window.FirmwareFlashers.esp32 = async ({ buffer, offset, baudRate, requestPort, port, log, progress }) => {
   const terminal = {
     log: (msg) => log(String(msg)),
     info: (msg) => log(String(msg)),
@@ -59,8 +72,10 @@ window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, lo
     }
 
     const binaryString = bufferToBinaryString(buffer);
+    const address = parseOffset(offset) ?? 0x10000;
+    log(`Flashing at 0x${address.toString(16)}...`);
     await loader.writeFlash({
-      fileArray: [{ data: binaryString, address: 0x0 }],
+      fileArray: [{ data: binaryString, address }],
       flashSize: "keep",
       eraseAll: false,
       compress: true,
@@ -72,6 +87,14 @@ window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, lo
         }
       }
     });
+
+    try {
+      await transport.setRTS(true);
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      await transport.setRTS(false);
+    } catch (err) {
+      // ignore reset failures
+    }
   } finally {
     if (transport) {
       try {
