@@ -1,0 +1,35 @@
+{
+  "id": "cardputer-mp3-adv",
+  "name": "CardPuter MP3 Adv",
+  "version": "v2.2.0",
+  "tagline": "Advanced MP3 player for M5Cardputer with Chinese UI and rich controls.",
+  "description": "An advanced MP3 player based on M5Cardputer, featuring Chinese character display, multiple playback modes, and rich control functions.",
+  "boards": [
+    { "brand": "m5stack", "model": "cardputer-adv", "label": "Cardputer Adv" }
+  ],
+  "features": ["music-player", "mp3-player"],
+  "trust": "verified",
+  "release_channel": "stable",
+  "support": "supported",
+  "featured": false,
+  "publisher": {
+    "name": "vicliu",
+    "github": "vicliu624",
+    "repo": "https://github.com/vicliu624/CardPuter_Mp3_Adv"
+  },
+  "release": {
+    "date": "2025-11-12",
+    "notes": "https://github.com/vicliu624/CardPuter_Mp3_Adv/releases/tag/v2.2.0"
+  },
+  "artifacts": [
+    {
+      "file": "firmware_v2.2.0.bin",
+      "type": "bin",
+      "url": "https://github.com/vicliu624/CardPuter_Mp3_Adv/releases/download/v2.2.0/firmware_v2.2.0.bin",
+      "sha256": "f92b8b62e9c6aa65c52777e9ea5b314cfc84ca6338067214c33ba721d2b1d0ea"
+    }
+  ],
+  "poster": {
+    "hero": "assets/posters/cardputer_mp3.jpg"
+  }
+}

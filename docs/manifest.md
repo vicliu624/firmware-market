@@ -12,7 +12,7 @@ packages/mydevice-lorawan-v1.2.3.json
 - `name`
 - `version`
 - `boards` (array of `{ brand, model, label? }`)
-- `regions` (array)
+- `regions` (array, optional for non-radio firmware)
 - `features` (array)
 - `tagline` (short marketing line)
 - `release_channel` (`stable` | `preview`)
@@ -30,6 +30,7 @@ packages/mydevice-lorawan-v1.2.3.json
 
 - `description`, `license`
 - `mcu` (array)
+- `regions` (omit if not applicable)
 - `constraints`
 - `links`
 

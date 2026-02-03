@@ -4,5 +4,5 @@
   "scenes": ["hiking", "fishing", "convoy", "rescue", "offline-comms"],
   "mcus": ["esp32", "esp32-s3", "stm32", "nrf52"],
   "regions": ["CN470", "EU868", "US915", "AS923", "AU915"],
-  "features": ["lorawan", "ble", "gps", "wifi", "mesh", "team"]
+  "features": ["lorawan", "ble", "gps", "wifi", "mesh", "team", "music-player", "mp3-player"]
 }
