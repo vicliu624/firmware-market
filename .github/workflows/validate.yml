@@ -1,0 +1,27 @@
+name: validate-manifests
+
+on:
+  pull_request:
+    paths:
+      - "packages/**"
+      - "schemas/**"
+      - "scripts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: python -m pip install --upgrade pip jsonschema
+      - name: Validate manifests and build index
+        run: python scripts/build_index.py --check-urls

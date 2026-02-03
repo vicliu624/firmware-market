@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Firmware Market</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="bg-ambient"></div>
+    <header class="market-header">
+      <div class="brand">
+        <div class="brand-mark">FM</div>
+        <div class="brand-text">
+          <div class="brand-name">Firmware Market</div>
+          <div class="brand-tag">Store-like discovery for verified firmware</div>
+        </div>
+      </div>
+      <div class="header-search">
+        <input id="search" type="text" placeholder="Search firmware, publisher, features, device">
+        <button class="ghost-icon" id="clear-search" type="button">Clear</button>
+      </div>
+      <div class="trust-switch" id="trust-switch">
+        <button class="trust-pill is-active" data-trust="official">Official</button>
+        <button class="trust-pill is-active" data-trust="verified">Verified</button>
+        <button class="trust-pill" data-trust="community">Community</button>
+      </div>
+    </header>
+
+    <main class="market-layout">
+      <aside class="filters-panel">
+        <div class="filter-summary">
+          <div>
+            <div class="summary-title">Active filters</div>
+            <div class="summary-chips" id="summary-chips"></div>
+          </div>
+          <button class="btn ghost" id="clear-all" type="button">Clear all</button>
+        </div>
+
+        <section class="filter-block">
+          <div class="block-title">
+            <h3>Devices</h3>
+            <button class="link" data-clear="device" type="button">Clear</button>
+          </div>
+          <div class="chip-row" id="device-chips"></div>
+          <div class="device-search">
+            <input id="device-search" list="device-list" placeholder="More devices">
+            <datalist id="device-list"></datalist>
+          </div>
+        </section>
+
+        <section class="filter-block">
+          <div class="block-title">
+            <h3>Features</h3>
+            <button class="link" data-clear="features" type="button">Clear</button>
+          </div>
+          <div class="mode-toggle" id="feature-mode">
+            <button class="mode-pill is-active" data-mode="and" type="button">AND</button>
+            <button class="mode-pill" data-mode="or" type="button">OR</button>
+          </div>
+          <div class="chip-cloud" id="feature-chips"></div>
+        </section>
+
+        <section class="filter-block">
+          <div class="block-title">
+            <h3>Region</h3>
+            <button class="link" data-clear="region" type="button">Clear</button>
+          </div>
+          <div class="chip-row" id="region-chips"></div>
+        </section>
+
+        <section class="filter-block" id="scene-block">
+          <div class="block-title">
+            <h3>Scenes</h3>
+            <button class="link" data-clear="scene" type="button">Clear</button>
+          </div>
+          <div class="chip-row" id="scene-chips"></div>
+        </section>
+
+        <section class="filter-block">
+          <div class="block-title">
+            <h3>Release & status</h3>
+            <button class="link" data-clear="release" type="button">Clear</button>
+          </div>
+          <div class="radio-stack">
+            <label><input type="radio" name="channel" value="" checked> All releases</label>
+            <label><input type="radio" name="channel" value="latest"> Latest only</label>
+            <label><input type="radio" name="channel" value="stable"> Stable</label>
+            <label><input type="radio" name="channel" value="preview"> Preview</label>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="show-deprecated">
+            <span>Show deprecated</span>
+          </label>
+        </section>
+      </aside>
+
+      <section class="results-panel">
+        <div class="results-header">
+          <div>
+            <h2>Catalog</h2>
+            <p class="muted">Verified firmware releases with clear trust boundaries.</p>
+          </div>
+          <div class="meta" id="results-meta"></div>
+        </div>
+
+        <div class="featured-strip" id="featured-strip"></div>
+
+        <div class="results-grid" id="results-grid"></div>
+        <div class="empty" id="results-empty">
+          <h3>No firmware found</h3>
+          <p>Try adjusting filters or submit a manifest through a PR.</p>
+        </div>
+      </section>
+    </main>
+
+    <div class="drawer" id="drawer">
+      <div class="drawer-panel" id="drawer-panel">
+        <button class="drawer-close" id="drawer-close" type="button">Close</button>
+        <div id="drawer-body"></div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="footer-card">
+        <h3>Safety notes</h3>
+        <ul>
+          <li>Web Flash works only in desktop Chrome/Edge.</li>
+          <li>Third-party firmware is not endorsed by this site.</li>
+          <li>Verify board, region, and partition before flashing.</li>
+        </ul>
+      </div>
+      <div class="footer-card">
+        <h3>Contribute</h3>
+        <p>Submit a manifest PR to list your firmware. No uploads required.</p>
+        <a class="btn primary" href="docs/manifest.md">Manifest guide</a>
+      </div>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

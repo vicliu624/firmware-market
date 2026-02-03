@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Web Flash</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="bg-orbit"></div>
+    <header class="site-header">
+      <nav class="nav">
+        <div class="logo">Firmware Market</div>
+        <div class="nav-links">
+          <a href="index.html">Back to catalog</a>
+          <a href="docs/flash.md">CLI guide</a>
+        </div>
+      </nav>
+      <div class="hero">
+        <div class="hero-text">
+          <p class="eyebrow">Web Flash (beta)</p>
+          <h1>Flash firmware from your browser.</h1>
+          <p class="lead">
+            This page uses WebSerial. It only works in desktop Chrome/Edge and
+            only for devices that accept raw binary streaming. If your device
+            needs a protocol-specific flasher, use the CLI guide instead.
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="stat">
+            <span class="stat-label">Browser</span>
+            <span class="stat-value" id="browser-status">Checking...</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Firmware</span>
+            <span class="stat-value" id="firmware-name">Unknown</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">SHA256</span>
+            <span class="stat-value" id="firmware-sha">-</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="filters">
+        <h2>Flash Steps</h2>
+        <ol>
+          <li>Put your device in bootloader mode.</li>
+          <li>Click Connect and select the serial port.</li>
+          <li>Start flashing and keep the device connected.</li>
+        </ol>
+        <div class="card-actions">
+          <button class="btn primary" id="connect">Connect device</button>
+          <button class="btn ghost" id="flash">Start flash</button>
+        </div>
+        <div class="progress">
+          <div class="progress-bar" id="progress"></div>
+        </div>
+        <div class="log" id="log"></div>
+      </section>
+    </main>
+
+    <script src="flash.js"></script>
+  </body>
+</html>
