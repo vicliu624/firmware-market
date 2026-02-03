@@ -1,6 +1,6 @@
-# Firmware Market
+# Entertain Humans
 
-A GitHub-driven firmware distribution index and static web site. Contributors submit manifest files through PRs; CI validates and aggregates them into a single `index.json` used by the site.
+A GitHub-driven firmware distribution index and static web site. Contributors submit manifest files through PRs; CI validates and aggregates them into a single manifest list used by the site. Firmware generated for human amusement.
 
 ## Repo Structure
 
