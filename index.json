@@ -1,5 +1,50 @@
 {
   "generated_at": "2026-02-03T00:00:00Z",
-  "count": 0,
-  "packages": []
+  "count": 1,
+  "packages": [
+    {
+      "id": "trail-mate",
+      "name": "Trail Mate",
+      "version": "v0.1.4-alpha",
+      "tagline": "Offline LoRa team comms and GPS positioning for outdoor crews.",
+      "description": "Offline-first LoRa team messaging and GPS positioning for outdoor scenarios.",
+      "boards": [
+        { "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" }
+      ],
+      "regions": ["CN470"],
+      "features": ["mesh", "team", "gps"],
+      "scenes": ["offline-comms", "rescue", "convoy", "hiking"],
+      "trust": "verified",
+      "release_channel": "preview",
+      "support": "supported",
+      "featured": true,
+      "publisher": {
+        "name": "Trail Mate",
+        "github": "vicliu624",
+        "repo": "https://github.com/vicliu624/trail-mate"
+      },
+      "release": {
+        "date": "2026-02-02",
+        "notes": "https://github.com/vicliu624/trail-mate/releases/tag/v0.1.4-alpha"
+      },
+      "artifacts": [
+        {
+          "file": "firmware.bin",
+          "type": "bin",
+          "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.4-alpha/firmware.bin",
+          "sha256": "77bf80ba6899e8f85df5dfa45cbd42512014ea6283f1c0ef4f3b43a27f2f7666",
+          "variant": "cn470"
+        }
+      ],
+      "poster": {
+        "hero": "assets/posters/trail-mate.png"
+      },
+      "story": [
+        "Outdoor activities often take place in environments where cellular networks are unreliable or completely unavailable. In these conditions, people still need to exchange short text messages, understand relative positions, and maintain basic orientation without depending entirely on smartphones or complex infrastructure.",
+        "Trail Mate is a low-power, offline-first handheld device project built on ESP32-class hardware, designed specifically to address these constraints.",
+        "It focuses on two core needs in offline outdoor scenarios: reliable self-positioning with a fixed north-up GPS map, and direct LoRa text communication that connects to Meshtastic networks without relying on a smartphone. Trail Mate prioritizes stability, efficiency, and interoperability over feature density or visual polish."
+      ],
+      "source": "packages/trail-mate-v0.1.4-alpha.json"
+    }
+  ]
 }
