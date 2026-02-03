@@ -196,6 +196,12 @@ a {
   font-size: 1rem;
 }
 
+.sub-label {
+  margin: 6px 0 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .link {
   border: none;
   background: transparent;
@@ -334,20 +340,29 @@ a {
 }
 
 .card-poster {
-  height: 160px;
+  min-height: 140px;
   background: linear-gradient(120deg, rgba(240, 108, 47, 0.8), rgba(28, 110, 104, 0.8));
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
   padding: 16px;
   color: #fff;
 }
 
 .card-poster.has-image {
-  background-size: cover;
-  background-position: center;
+  padding: 0;
+  min-height: auto;
+}
+
+.poster-img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .poster-meta {
+  position: absolute;
+  top: 12px;
+  left: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -501,8 +516,13 @@ a {
   border-radius: 22px;
   min-height: 220px;
   background: linear-gradient(120deg, rgba(240, 108, 47, 0.8), rgba(28, 110, 104, 0.85));
-  background-size: cover;
-  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-poster .poster-img {
+  width: 100%;
+  height: auto;
 }
 
 .detail-actions {

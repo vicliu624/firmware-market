@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -5,13 +6,25 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SITE_DIR = os.path.join(ROOT, "site")
 DIST_DIR = os.path.join(ROOT, "dist")
-INDEX_PATH = os.path.join(ROOT, "index.json")
 DOCS_DIR = os.path.join(ROOT, "docs")
+PACKAGES_DIR = os.path.join(ROOT, "packages")
 
 
-def ensure_index():
-    if not os.path.exists(INDEX_PATH):
-        raise FileNotFoundError("index.json not found. Run scripts/build_index.py first.")
+def list_manifests():
+    manifests = []
+    if not os.path.isdir(PACKAGES_DIR):
+        return manifests
+    for root, _, files in os.walk(PACKAGES_DIR):
+        for name in files:
+            if not name.lower().endswith(".json"):
+                continue
+            if name.startswith("_"):
+                continue
+            path = os.path.join(root, name)
+            rel = os.path.relpath(path, ROOT).replace("\\", "/")
+            manifests.append(rel)
+    manifests.sort()
+    return manifests
 
 
 def clean_dir(path):
@@ -32,12 +45,16 @@ def copy_tree(src, dest):
 
 
 def main():
-    ensure_index()
     clean_dir(DIST_DIR)
 
     copy_tree(SITE_DIR, DIST_DIR)
-    shutil.copy2(INDEX_PATH, os.path.join(DIST_DIR, "index.json"))
+    copy_tree(PACKAGES_DIR, os.path.join(DIST_DIR, "packages"))
     copy_tree(DOCS_DIR, os.path.join(DIST_DIR, "docs"))
+
+    manifests = list_manifests()
+    with open(os.path.join(DIST_DIR, "manifests.json"), "w", encoding="utf-8") as f:
+        json.dump(manifests, f, indent=2, ensure_ascii=True)
+        f.write("\n")
 
     print(f"Built site in {DIST_DIR}")
 

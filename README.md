@@ -8,7 +8,7 @@ A GitHub-driven firmware distribution index and static web site. Contributors su
 firmware-market/
   site/                  # Static web site (GitHub Pages)
   packages/              # Firmware manifests (one file per release)
-  index.json             # Generated aggregate index
+  dist/manifests.json    # Generated manifest list for the site
   schemas/               # JSON schemas and allowed value lists
   scripts/               # Build/validation utilities
   docs/                  # Flashing guides, governance, FAQ
@@ -17,13 +17,13 @@ firmware-market/
 
 ## Local Development
 
-1) Validate and generate `index.json`
+1) Validate manifests (optional but recommended)
 
 ```
 python scripts/build_index.py
 ```
 
-2) Build site output (copies site + index + docs into `dist/`)
+2) Build site output (copies site + packages + docs into `dist/`)
 
 ```
 python scripts/build_site.py
@@ -33,7 +33,7 @@ Open `dist/index.html` in a browser.
 
 ## Contributing Firmware
 
-See `packages/README.md` for the manifest format and PR checklist.
+See `packages/README.md` for the manifest format and PR checklist. CI auto-generates `dist/manifests.json` so you only need to add a new manifest file.
 
 ## Governance / Trust
 

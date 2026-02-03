@@ -39,6 +39,7 @@ packages/mydevice-lorawan-v1.2.3.json
 - Fields comply with `schemas/allowed.json`
 - Artifact URLs are reachable
 - SHA256 values are correct
+- No need to edit `manifests.json` (CI builds it)
 
 ## Example
 

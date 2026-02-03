@@ -4,12 +4,14 @@ const state = {
   latestById: {},
   devices: [],
   options: {
+    brands: [],
     features: [],
     regions: [],
     scenes: []
   },
   filters: {
     search: "",
+    brand: "",
     device: "",
     features: [],
     featureMode: "and",
@@ -38,6 +40,7 @@ const ui = {
   trustSwitch: document.getElementById("trust-switch"),
   summaryChips: document.getElementById("summary-chips"),
   clearAll: document.getElementById("clear-all"),
+  brandChips: document.getElementById("brand-chips"),
   deviceChips: document.getElementById("device-chips"),
   deviceSearch: document.getElementById("device-search"),
   deviceList: document.getElementById("device-list"),
@@ -97,6 +100,7 @@ function uniqueSorted(values) {
 
 function collectOptions(packages) {
   const deviceMap = new Map();
+  const brands = [];
   const features = [];
   const regions = [];
   const scenes = [];
@@ -104,6 +108,7 @@ function collectOptions(packages) {
   packages.forEach((item) => {
     (item.boards || []).forEach((board) => {
       if (!board?.brand || !board?.model) return;
+      brands.push(board.brand);
       const key = deviceKey(board);
       if (!deviceMap.has(key)) {
         deviceMap.set(key, {
@@ -121,6 +126,7 @@ function collectOptions(packages) {
 
   state.devices = Array.from(deviceMap.values()).sort((a, b) => a.label.localeCompare(b.label));
   return {
+    brands: uniqueSorted(brands),
     features: uniqueSorted(features),
     regions: uniqueSorted(regions),
     scenes: uniqueSorted(scenes)
@@ -131,7 +137,11 @@ function renderDeviceFilters() {
   ui.deviceChips.innerHTML = "";
   ui.deviceList.innerHTML = "";
 
-  let featured = state.devices.slice(0, 5);
+  const scopedDevices = state.filters.brand
+    ? state.devices.filter((device) => device.brand === state.filters.brand)
+    : state.devices;
+
+  let featured = scopedDevices.slice(0, 5);
   if (state.filters.device) {
     const selected = state.devices.find((device) => device.key === state.filters.device);
     if (selected && !featured.some((device) => device.key === selected.key)) {
@@ -148,7 +158,7 @@ function renderDeviceFilters() {
     ui.deviceChips.appendChild(chip);
   });
 
-  state.devices.forEach((device) => {
+  scopedDevices.forEach((device) => {
     const option = document.createElement("option");
     option.value = device.label;
     ui.deviceList.appendChild(option);
@@ -185,6 +195,18 @@ function selectDevice(key, label) {
   applyFilters();
 }
 
+function selectBrand(value) {
+  state.filters.brand = state.filters.brand === value ? "" : value;
+  if (state.filters.device) {
+    const selected = state.devices.find((device) => device.key === state.filters.device);
+    if (selected && state.filters.brand && selected.brand !== state.filters.brand) {
+      state.filters.device = "";
+      ui.deviceSearch.value = "";
+    }
+  }
+  applyFilters();
+}
+
 function toggleFeature(feature) {
   const idx = state.filters.features.indexOf(feature);
   if (idx >= 0) {
@@ -198,6 +220,11 @@ function toggleFeature(feature) {
 function matchesDevice(item) {
   if (!state.filters.device) return true;
   return (item.boards || []).some((board) => deviceKey(board) === state.filters.device);
+}
+
+function matchesBrand(item) {
+  if (!state.filters.brand) return true;
+  return (item.boards || []).some((board) => board.brand === state.filters.brand);
 }
 
 function matchesFeatures(item) {
@@ -245,6 +272,7 @@ function applyFilters() {
 
   state.filtered = state.packages.filter((item) => {
     if (!matchesTrust(item)) return false;
+    if (!matchesBrand(item)) return false;
     if (!matchesDevice(item)) return false;
     if (!matchesRegion(item)) return false;
     if (!matchesScene(item)) return false;
@@ -290,6 +318,10 @@ function renderSummary() {
     const device = state.devices.find((d) => d.key === state.filters.device);
     if (device) chips.push({ label: device.label, key: "device" });
   }
+  if (state.filters.brand) {
+    const label = brandLabels[state.filters.brand] || titleCase(state.filters.brand);
+    chips.push({ label: `Brand: ${label}`, key: "brand" });
+  }
   if (state.filters.features.length) {
     const label = `${state.filters.featureMode.toUpperCase()}: ${state.filters.features.join(", ")}`;
     chips.push({ label, key: "features" });
@@ -322,6 +354,10 @@ function clearFilter(key) {
     case "device":
       state.filters.device = "";
       ui.deviceSearch.value = "";
+      state.filters.brand = "";
+      break;
+    case "brand":
+      state.filters.brand = "";
       break;
     case "features":
       state.filters.features = [];
@@ -351,6 +387,7 @@ function clearFilter(key) {
 
 function renderFilters() {
   renderDeviceFilters();
+  renderChips(ui.brandChips, state.options.brands, state.filters.brand, selectBrand);
   renderFeatureChips(state.options.features);
   renderChips(ui.regionChips, state.options.regions, state.filters.region, (value) => {
     state.filters.region = value === state.filters.region ? "" : value;
@@ -387,7 +424,7 @@ function renderCards() {
 
     const poster = item.poster?.hero || "";
     const posterClass = poster ? "card-poster has-image" : "card-poster";
-    const posterStyle = poster ? `style="background-image:url('${poster}')"` : "";
+    const posterImage = poster ? `<img class="poster-img" src="${poster}" alt="${item.name} poster">` : "";
 
     const support = item.support || "supported";
     const releaseChannel = item.release_channel || "stable";
@@ -413,7 +450,8 @@ function renderCards() {
       : `<div class="avatar">${(item.publisher?.name || "?").charAt(0)}</div>`;
 
     card.innerHTML = `
-      <div class="${posterClass}" ${posterStyle}>
+      <div class="${posterClass}">
+        ${posterImage}
         <div class="poster-meta">
           <span class="trust-badge ${item.trust}">${trustLabels[item.trust]}</span>
           <span class="status-badge ${support === "deprecated" ? "deprecated" : ""}">${statusLabel}</span>
@@ -506,7 +544,8 @@ function renderDetailFeatures(item) {
 }
 
 function openDrawer(item) {
-  const posterStyle = item.poster?.hero ? `style="background-image:url('${item.poster.hero}')"` : "";
+  const poster = item.poster?.hero || "";
+  const posterImage = poster ? `<img class="poster-img" src="${poster}" alt="${item.name} poster">` : "";
   const gallery = (item.poster?.gallery || []).slice(0, 6);
   const galleryHtml = gallery.length
     ? `
@@ -529,7 +568,7 @@ function openDrawer(item) {
 
   ui.drawerBody.innerHTML = `
     <div class="detail-hero">
-      <div class="detail-poster" ${posterStyle}></div>
+      <div class="detail-poster">${posterImage}</div>
       <div>
         <div class="muted">${trustLabels[item.trust]}</div>
         <h2>${item.name}</h2>
@@ -653,6 +692,7 @@ function wireEvents() {
   ui.clearAll.addEventListener("click", () => {
     state.filters = {
       search: "",
+      brand: "",
       device: "",
       features: [],
       featureMode: "and",
@@ -680,16 +720,46 @@ function wireEvents() {
 }
 
 async function load() {
+  let packages = null;
+
   try {
-    const response = await fetch("index.json", { cache: "no-store" });
-    if (!response.ok) throw new Error("index.json not found");
-    const data = await response.json();
-    state.packages = data.packages || [];
+    const response = await fetch("manifests.json", { cache: "no-store" });
+    if (response.ok) {
+      const list = await response.json();
+      if (Array.isArray(list) && list.length) {
+        const results = await Promise.all(
+          list.map(async (path) => {
+            try {
+              const itemResponse = await fetch(path, { cache: "no-store" });
+              if (!itemResponse.ok) return null;
+              return await itemResponse.json();
+            } catch (err) {
+              return null;
+            }
+          })
+        );
+        packages = results.filter(Boolean);
+      } else {
+        packages = [];
+      }
+    }
   } catch (err) {
-    console.warn("Failed to load index.json", err);
-    state.packages = [];
+    console.warn("Failed to load manifests.json", err);
   }
 
+  if (!packages) {
+    try {
+      const response = await fetch("index.json", { cache: "no-store" });
+      if (!response.ok) throw new Error("index.json not found");
+      const data = await response.json();
+      packages = data.packages || [];
+    } catch (err) {
+      console.warn("Failed to load index.json", err);
+      packages = [];
+    }
+  }
+
+  state.packages = packages;
   state.latestById = buildLatestIndex(state.packages);
   state.options = collectOptions(state.packages);
 
