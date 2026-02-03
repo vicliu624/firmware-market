@@ -36,34 +36,52 @@ window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, lo
   };
 
   const selectedPort = port || (await requestPort());
-  if (selectedPort?.readable || selectedPort?.writable) {
+  let transport = null;
+
+  try {
+    transport = new Transport(selectedPort, true);
     try {
-      await selectedPort.close();
+      await transport.connect(baudRate);
     } catch (err) {
-      // ignore if already closed
-    }
-  }
-
-  const transport = new Transport(selectedPort, true);
-  await transport.connect(baudRate);
-
-  const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
-  await loader.main();
-
-  const binaryString = bufferToBinaryString(buffer);
-  await loader.writeFlash({
-    fileArray: [{ data: binaryString, address: 0x0 }],
-    flashSize: "keep",
-    eraseAll: false,
-    compress: true,
-    flashMode: "keep",
-    flashFreq: "keep",
-    reportProgress: (fileIndex, written, total) => {
-      if (typeof total === "number" && total > 0) {
-        progress(Math.min(100, Math.round((written / total) * 100)));
+      const message = String(err?.message || err || "");
+      if (message.includes("already open")) {
+        try {
+          await selectedPort.close();
+        } catch (closeErr) {
+          // ignore close failures
+        }
+        await transport.connect(baudRate);
+      } else {
+        throw err;
       }
     }
-  });
+
+    const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
+    await loader.main();
+
+    const binaryString = bufferToBinaryString(buffer);
+    await loader.writeFlash({
+      fileArray: [{ data: binaryString, address: 0x0 }],
+      flashSize: "keep",
+      eraseAll: false,
+      compress: true,
+      flashMode: "keep",
+      flashFreq: "keep",
+      reportProgress: (fileIndex, written, total) => {
+        if (typeof total === "number" && total > 0) {
+          progress(Math.min(100, Math.round((written / total) * 100)));
+        }
+      }
+    });
+  } finally {
+    if (transport) {
+      try {
+        await transport.disconnect();
+      } catch (err) {
+        // ignore disconnect failures
+      }
+    }
+  }
 };
 
 window.FirmwareFlashers.stm32 = async ({ url, log, progress }) => {
