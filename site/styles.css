@@ -583,6 +583,20 @@ a {
   font-size: 0.9rem;
 }
 
+.select {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 27, 22, 0.2);
+  background: #fff;
+  font-size: 0.95rem;
+}
+
+.flash-panel {
+  margin-top: 18px;
+}
+
 .site-footer {
   display: grid;
   gap: 20px;

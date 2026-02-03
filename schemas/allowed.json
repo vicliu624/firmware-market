@@ -2,7 +2,7 @@
   "brands": ["lilygo", "m5stack"],
   "models": ["t-lora-pager", "t-deck", "cardputer-adv"],
   "scenes": ["hiking", "fishing", "convoy", "rescue", "offline-comms"],
-  "mcus": ["esp32", "esp32-s3", "stm32", "nrf52"],
+  "mcus": ["esp32", "esp32-s3", "stm32", "nrf52", "rp2040"],
   "regions": ["CN470", "EU868", "US915", "AS923", "AU915"],
   "features": ["lorawan", "ble", "gps", "wifi", "mesh", "team", "music-player", "mp3-player"]
 }

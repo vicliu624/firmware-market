@@ -267,6 +267,15 @@ function matchesRegion(item) {
   return (item.regions || []).includes(state.filters.region);
 }
 
+function inferFlashMethod(item, artifact) {
+  const mcus = (item.mcu || []).map((mcu) => normalize(mcu));
+  if (mcus.includes("esp32") || mcus.includes("esp32-s3")) return "esp32";
+  if (mcus.includes("rp2040")) return "rp2040";
+  if (mcus.includes("stm32")) return "stm32";
+  if (artifact?.type === "uf2" || (artifact?.file || "").toLowerCase().endsWith(".uf2")) return "rp2040";
+  return "";
+}
+
 function applyFilters() {
   const search = normalize(state.filters.search);
 
@@ -441,9 +450,14 @@ function renderCards() {
       (moreFeatures > 0 ? `<span class="chip">+${moreFeatures}</span>` : "");
 
     const artifact = (item.artifacts || [])[0] || {};
-    const flashLink = artifact.url && canFlash
-      ? `<a class="btn ghost" href="flash.html?url=${encodeURIComponent(artifact.url)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}">Flash</a>`
-      : `<a class="btn ghost" href="${artifact.url || "#"}">Download</a>`;
+    const method = inferFlashMethod(item, artifact);
+    const mcuParam = (item.mcu || []).join(",");
+    const flashHref = artifact.url
+      ? `flash.html?url=${encodeURIComponent(artifact.url)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
+      : "#";
+    const flashLink = artifact.url
+      ? `<a class="btn ghost" href="${flashHref}">Flash</a>`
+      : `<span class="btn ghost disabled">Flash</span>`;
 
     const avatar = item.publisher?.avatar
       ? `<img class="avatar" src="${item.publisher.avatar}" alt="${item.publisher.name}">`
@@ -562,9 +576,16 @@ function openDrawer(item) {
 
   const artifact = (item.artifacts || [])[0] || {};
   const canFlash = "serial" in navigator;
-  const flashLink = artifact.url && canFlash
-    ? `<a class="btn primary" href="flash.html?url=${encodeURIComponent(artifact.url)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}">Flash</a>`
-    : "";
+  const method = inferFlashMethod(item, artifact);
+  let flashLabel = "CLI";
+  if (method === "esp32") flashLabel = canFlash ? "Web Flash (ESP32) / CLI" : "CLI";
+  if (method === "rp2040") flashLabel = "UF2 Drag / CLI";
+  if (method === "stm32") flashLabel = navigator.usb ? "Web DFU / CLI" : "CLI (DFU)";
+  const mcuParam = (item.mcu || []).join(",");
+  const flashHref = artifact.url
+    ? `flash.html?url=${encodeURIComponent(artifact.url)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}`
+    : "#";
+  const flashLink = artifact.url ? `<a class="btn primary" href="${flashHref}">Flash</a>` : "";
 
   ui.drawerBody.innerHTML = `
     <div class="detail-hero">
@@ -604,7 +625,7 @@ function openDrawer(item) {
         <div><strong>Devices:</strong> ${(item.boards || []).map(formatDeviceLabel).join(", ") || "-"}</div>
         <div><strong>Regions:</strong> ${(item.regions || []).join(", ") || "-"}</div>
         <div><strong>MCU:</strong> ${(item.mcu || []).join(", ") || "-"}</div>
-        <div><strong>Flashing:</strong> ${canFlash ? "Web Flash / CLI" : "CLI"}</div>
+        <div><strong>Flashing:</strong> ${flashLabel}</div>
         <div><strong>SHA256:</strong> ${artifact.sha256 || "-"}</div>
         <div><strong>Source:</strong> <a href="${item.release?.notes || "#"}">Release</a></div>
       </div>

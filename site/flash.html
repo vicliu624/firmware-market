@@ -18,18 +18,21 @@
       </nav>
       <div class="hero">
         <div class="hero-text">
-          <p class="eyebrow">Web Flash (beta)</p>
+          <p class="eyebrow">Web Flash (multi-device)</p>
           <h1>Flash firmware from your browser.</h1>
           <p class="lead">
-            This page uses WebSerial. It only works in desktop Chrome/Edge and
-            only for devices that accept raw binary streaming. If your device
-            needs a protocol-specific flasher, use the CLI guide instead.
+            Choose your device family first. The flasher will match the correct
+            protocol (ESP32 esptool, RP2040 UF2 drag, or STM32 DFU WebUSB).
           </p>
         </div>
         <div class="hero-panel">
           <div class="stat">
-            <span class="stat-label">Browser</span>
-            <span class="stat-value" id="browser-status">Checking...</span>
+            <span class="stat-label">Device</span>
+            <select id="flash-method" class="select">
+              <option value="esp32">ESP32 (esptool-js)</option>
+              <option value="rp2040">RP2040 (UF2 drag)</option>
+              <option value="stm32">STM32 (DFU WebUSB)</option>
+            </select>
           </div>
           <div class="stat">
             <span class="stat-label">Firmware</span>
@@ -45,16 +48,44 @@
 
     <main class="content">
       <section class="filters">
-        <h2>Flash Steps</h2>
-        <ol>
-          <li>Put your device in bootloader mode.</li>
-          <li>Click Connect and select the serial port.</li>
-          <li>Start flashing and keep the device connected.</li>
-        </ol>
         <div class="card-actions">
-          <button class="btn primary" id="connect">Connect device</button>
-          <button class="btn ghost" id="flash">Start flash</button>
+          <a class="btn ghost" id="download-link" href="#">Download firmware</a>
         </div>
+        <div class="detail-warning" id="method-warning"></div>
+
+        <div class="flash-panel" id="panel-esp32">
+          <h2>ESP32 (esptool-js)</h2>
+          <ol>
+            <li>Put your device in bootloader mode.</li>
+            <li>Click Connect and select the serial port.</li>
+            <li>Start flashing and keep the device connected.</li>
+          </ol>
+          <div class="card-actions">
+            <button class="btn primary" id="connect">Connect device</button>
+            <button class="btn ghost" id="flash">Start flash</button>
+          </div>
+        </div>
+
+        <div class="flash-panel" id="panel-rp2040">
+          <h2>RP2040 (UF2 drag)</h2>
+          <ol>
+            <li>Hold BOOTSEL and plug in the device to mount it as a drive.</li>
+            <li>Download the UF2 file and drag it to the device drive.</li>
+          </ol>
+        </div>
+
+        <div class="flash-panel" id="panel-stm32">
+          <h2>STM32 (DFU WebUSB)</h2>
+          <ol>
+            <li>Put the device into DFU mode.</li>
+            <li>Connect over USB and start flashing.</li>
+          </ol>
+          <div class="card-actions">
+            <button class="btn primary" id="dfu-connect">Connect DFU</button>
+            <button class="btn ghost" id="dfu-flash">Start DFU flash</button>
+          </div>
+        </div>
+
         <div class="progress">
           <div class="progress-bar" id="progress"></div>
         </div>
@@ -62,6 +93,16 @@
       </section>
     </main>
 
+    <script src="vendor/esptool-js/esptool.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "dfu": "./vendor/webdfu/index.js",
+          "nanoevents": "./vendor/webdfu/nanoevents.js"
+        }
+      }
+    </script>
+    <script type="module" src="vendor/flashers.js"></script>
     <script src="flash.js"></script>
   </body>
 </html>
