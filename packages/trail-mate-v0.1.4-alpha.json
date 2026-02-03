@@ -8,7 +8,6 @@
     { "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" }
   ],
   "mcu": ["esp32"],
-  "regions": ["CN470"],
   "features": ["mesh", "team", "gps"],
   "scenes": ["offline-comms", "rescue", "convoy", "hiking"],
   "trust": "verified",

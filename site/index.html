@@ -39,11 +39,17 @@
 
         <section class="filter-block">
           <div class="block-title">
+            <h3>Brand</h3>
+            <button class="link" data-clear="brand" type="button">Clear</button>
+          </div>
+          <div class="chip-row" id="brand-chips"></div>
+        </section>
+
+        <section class="filter-block">
+          <div class="block-title">
             <h3>Devices</h3>
             <button class="link" data-clear="device" type="button">Clear</button>
           </div>
-          <div class="sub-label">Brand</div>
-          <div class="chip-row" id="brand-chips"></div>
           <div class="chip-row" id="device-chips"></div>
           <div class="device-search">
             <input id="device-search" list="device-list" placeholder="More devices">
@@ -61,14 +67,6 @@
             <button class="mode-pill" data-mode="or" type="button">OR</button>
           </div>
           <div class="chip-cloud" id="feature-chips"></div>
-        </section>
-
-        <section class="filter-block">
-          <div class="block-title">
-            <h3>Region</h3>
-            <button class="link" data-clear="region" type="button">Clear</button>
-          </div>
-          <div class="chip-row" id="region-chips"></div>
         </section>
 
         <section class="filter-block" id="scene-block">
@@ -129,7 +127,7 @@
         <ul>
           <li>Web Flash works only in desktop Chrome/Edge.</li>
           <li>Third-party firmware is not endorsed by this site.</li>
-          <li>Verify board, region, and partition before flashing.</li>
+          <li>Verify board and partition before flashing.</li>
         </ul>
       </div>
       <div class="footer-card">

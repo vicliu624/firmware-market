@@ -6,7 +6,6 @@ const state = {
   options: {
     brands: [],
     features: [],
-    regions: [],
     scenes: []
   },
   filters: {
@@ -15,7 +14,6 @@ const state = {
     device: "",
     features: [],
     featureMode: "and",
-    region: "",
     scene: "",
     channel: "",
     showDeprecated: false,
@@ -46,7 +44,6 @@ const ui = {
   deviceList: document.getElementById("device-list"),
   featureChips: document.getElementById("feature-chips"),
   featureMode: document.getElementById("feature-mode"),
-  regionChips: document.getElementById("region-chips"),
   sceneBlock: document.getElementById("scene-block"),
   sceneChips: document.getElementById("scene-chips"),
   showDeprecated: document.getElementById("show-deprecated"),
@@ -74,9 +71,7 @@ function titleCase(value) {
 function formatDeviceLabel(board) {
   if (!board) return "";
   if (board.label) return board.label;
-  const brand = brandLabels[board.brand] || titleCase(board.brand);
-  const model = titleCase(board.model);
-  return `${brand} ${model}`.trim();
+  return titleCase(board.model);
 }
 
 function deviceKey(board) {
@@ -102,7 +97,6 @@ function collectOptions(packages) {
   const deviceMap = new Map();
   const brands = [];
   const features = [];
-  const regions = [];
   const scenes = [];
 
   packages.forEach((item) => {
@@ -120,7 +114,6 @@ function collectOptions(packages) {
       }
     });
     (item.features || []).forEach((feature) => features.push(feature));
-    (item.regions || []).forEach((region) => regions.push(region));
     (item.scenes || []).forEach((scene) => scenes.push(scene));
   });
 
@@ -128,7 +121,6 @@ function collectOptions(packages) {
   return {
     brands: uniqueSorted(brands),
     features: uniqueSorted(features),
-    regions: uniqueSorted(regions),
     scenes: uniqueSorted(scenes)
   };
 }
@@ -262,11 +254,6 @@ function matchesScene(item) {
   return (item.scenes || []).includes(state.filters.scene);
 }
 
-function matchesRegion(item) {
-  if (!state.filters.region) return true;
-  return (item.regions || []).includes(state.filters.region);
-}
-
 function inferFlashMethod(item, artifact) {
   const mcus = (item.mcu || []).map((mcu) => normalize(mcu));
   if (mcus.includes("esp32") || mcus.includes("esp32-s3")) return "esp32";
@@ -283,7 +270,6 @@ function applyFilters() {
     if (!matchesTrust(item)) return false;
     if (!matchesBrand(item)) return false;
     if (!matchesDevice(item)) return false;
-    if (!matchesRegion(item)) return false;
     if (!matchesScene(item)) return false;
     if (!matchesFeatures(item)) return false;
     if (!matchesChannel(item)) return false;
@@ -335,7 +321,6 @@ function renderSummary() {
     const label = `${state.filters.featureMode.toUpperCase()}: ${state.filters.features.join(", ")}`;
     chips.push({ label, key: "features" });
   }
-  if (state.filters.region) chips.push({ label: `Region: ${state.filters.region}`, key: "region" });
   if (state.filters.scene) chips.push({ label: `Scene: ${state.filters.scene}`, key: "scene" });
   if (state.filters.channel) chips.push({ label: `Channel: ${state.filters.channel}`, key: "channel" });
   if (state.filters.showDeprecated) chips.push({ label: "Including deprecated", key: "deprecated" });
@@ -371,9 +356,6 @@ function clearFilter(key) {
     case "features":
       state.filters.features = [];
       break;
-    case "region":
-      state.filters.region = "";
-      break;
     case "scene":
       state.filters.scene = "";
       break;
@@ -398,10 +380,6 @@ function renderFilters() {
   renderDeviceFilters();
   renderChips(ui.brandChips, state.options.brands, state.filters.brand, selectBrand);
   renderFeatureChips(state.options.features);
-  renderChips(ui.regionChips, state.options.regions, state.filters.region, (value) => {
-    state.filters.region = value === state.filters.region ? "" : value;
-    applyFilters();
-  });
 
   if (state.options.scenes.length) {
     ui.sceneBlock.style.display = "block";
@@ -717,7 +695,6 @@ function wireEvents() {
       device: "",
       features: [],
       featureMode: "and",
-      region: "",
       scene: "",
       channel: "",
       showDeprecated: false,
