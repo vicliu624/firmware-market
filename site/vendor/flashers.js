@@ -12,20 +12,58 @@ async function loadWebDfu() {
   return webdfuModulePromise;
 }
 
-window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, log, progress }) => {
+function bufferToBinaryString(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let result = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    result += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return result;
+}
+
+window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, port, log, progress }) => {
   const terminal = {
     log: (msg) => log(String(msg)),
     info: (msg) => log(String(msg)),
     warn: (msg) => log(String(msg)),
     error: (msg) => log(String(msg)),
     write: (msg) => log(String(msg)),
-    clean: () => {}
+    writeLine: (msg) => log(String(msg)),
+    writeln: (msg) => log(String(msg)),
+    clean: () => {},
+    clear: () => {}
   };
-  const port = await requestPort();
-  const transport = new Transport(port);
+
+  const selectedPort = port || (await requestPort());
+  if (selectedPort?.readable || selectedPort?.writable) {
+    try {
+      await selectedPort.close();
+    } catch (err) {
+      // ignore if already closed
+    }
+  }
+
+  const transport = new Transport(selectedPort, true);
+  await transport.connect(baudRate);
+
   const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
-  await loader.connect();
-  await loader.flashData(buffer, 0x0, progress);
+  await loader.main();
+
+  const binaryString = bufferToBinaryString(buffer);
+  await loader.writeFlash({
+    fileArray: [{ data: binaryString, address: 0x0 }],
+    flashSize: "keep",
+    eraseAll: false,
+    compress: true,
+    flashMode: "keep",
+    flashFreq: "keep",
+    reportProgress: (fileIndex, written, total) => {
+      if (typeof total === "number" && total > 0) {
+        progress(Math.min(100, Math.round((written / total) * 100)));
+      }
+    }
+  });
 };
 
 window.FirmwareFlashers.stm32 = async ({ url, log, progress }) => {

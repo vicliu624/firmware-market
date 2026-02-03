@@ -117,8 +117,7 @@ async function connectPort() {
   }
   try {
     port = await navigator.serial.requestPort();
-    await port.open({ baudRate });
-    log(`Connected at ${baudRate} baud.`);
+    log("Port selected. Ready to flash.");
   } catch (err) {
     log(`Connection failed: ${err.message || err}`);
   }
