@@ -1,5 +1,7 @@
 // Vendor adapters. Provide esptool-js and webdfu bundles under site/vendor
 // to enable real flashing.
+import { ESPLoader, Transport } from "esptool-js";
+
 window.FirmwareFlashers = window.FirmwareFlashers || {};
 
 let webdfuModulePromise = null;
@@ -11,12 +13,9 @@ async function loadWebDfu() {
 }
 
 window.FirmwareFlashers.esp32 = async ({ buffer, baudRate, requestPort, log, progress }) => {
-  if (!window.ESPLoader || !window.Transport) {
-    throw new Error("esptool-js not loaded (missing ESPLoader/Transport)");
-  }
   const port = await requestPort();
-  const transport = new window.Transport(port);
-  const loader = new window.ESPLoader({ transport, baudrate: baudRate, terminal: { log } });
+  const transport = new Transport(port);
+  const loader = new ESPLoader({ transport, baudrate: baudRate, terminal: { log } });
   await loader.connect();
   await loader.flashData(buffer, 0x0, progress);
 };
