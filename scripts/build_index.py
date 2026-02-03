@@ -169,10 +169,9 @@ def main():
     for path in iter_manifests():
         with open(path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
-        manifest["source"] = os.path.relpath(path, ROOT).replace("\\", "/")
-
         validate_schema(manifest, schema)
         validate_allowed(manifest, allowed)
+        manifest["source"] = os.path.relpath(path, ROOT).replace("\\", "/")
 
         key = (manifest.get("id"), manifest.get("version"))
         if key in seen:
