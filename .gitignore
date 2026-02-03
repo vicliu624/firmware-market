@@ -87,6 +87,8 @@ dkms.conf
 *.lst
 firmware.bin
 firmware.elf
+!site/assets/firmware/
+!site/assets/firmware/*.bin
 
 # IDE - VSCode
 .vscode/
