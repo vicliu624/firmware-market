@@ -1,0 +1,36 @@
+{
+  "id": "lofibox",
+  "name": "LoFiBox",
+  "version": "v0.1.0-alpha",
+  "tagline": "A tiny offline music box with zero accounts and zero noise.",
+  "description": "LoFiBox is not a streaming app, and it is not Hi-Fi. It is a small player that runs entirely on the device, without networks, accounts, or background services.",
+  "boards": [
+    { "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" }
+  ],
+  "mcu": ["esp32"],
+  "features": ["music-player", "mp3-player"],
+  "trust": "verified",
+  "release_channel": "preview",
+  "support": "supported",
+  "featured": false,
+  "publisher": {
+    "name": "vicliu",
+    "github": "vicliu624",
+    "repo": "https://github.com/vicliu624/LoFiBox"
+  },
+  "release": {
+    "date": "2026-02-03",
+    "notes": "https://github.com/vicliu624/LoFiBox/releases/tag/v0.1.0-alpha"
+  },
+  "artifacts": [
+    {
+      "file": "firmware.bin",
+      "type": "bin",
+      "url": "https://github.com/vicliu624/LoFiBox/releases/download/v0.1.0-alpha/firmware.bin",
+      "sha256": "82278dbc4f30d068b461410f4e7c83a5be2018e3981bf6ae32a0a4ae81c0f575"
+    }
+  ],
+  "poster": {
+    "hero": "assets/posters/LoFiBox.png"
+  }
+}
