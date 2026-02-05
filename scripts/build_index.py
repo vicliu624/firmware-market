@@ -152,6 +152,17 @@ def build_index(manifests):
     }
 
 
+def select_latest_by_id(manifests):
+    latest = {}
+    for item in manifests:
+        release = item.get("release") or {}
+        key = (release.get("date", ""), item.get("version", ""))
+        current = latest.get(item.get("id"))
+        if not current or key > current["key"]:
+            latest[item.get("id")] = {"item": item, "key": key}
+    return [entry["item"] for entry in latest.values()]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Validate manifests and build index.json")
     parser.add_argument("--out", default=os.path.join(ROOT, "index.json"))
@@ -185,6 +196,7 @@ def main():
 
         manifests.append(manifest)
 
+    manifests = select_latest_by_id(manifests)
     index = build_index(manifests)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2, ensure_ascii=True)

@@ -15,7 +15,7 @@ const state = {
     features: [],
     featureMode: "and",
     scene: "",
-    channel: "",
+    channel: "latest",
     showDeprecated: false,
     trust: ["official", "verified"]
   }
@@ -87,6 +87,10 @@ function buildLatestIndex(packages) {
     }
   });
   return latest;
+}
+
+function filterLatest(packages, latestById) {
+  return packages.filter((item) => (item.release?.date || "") === (latestById[item.id] || ""));
 }
 
 function uniqueSorted(values) {
@@ -360,8 +364,8 @@ function clearFilter(key) {
       state.filters.scene = "";
       break;
     case "channel":
-      state.filters.channel = "";
-      document.querySelector('input[name="channel"][value=""]').checked = true;
+      state.filters.channel = "latest";
+      document.querySelector('input[name="channel"][value="latest"]').checked = true;
       break;
     case "deprecated":
       state.filters.showDeprecated = false;
@@ -700,14 +704,14 @@ function wireEvents() {
       features: [],
       featureMode: "and",
       scene: "",
-      channel: "",
+      channel: "latest",
       showDeprecated: false,
       trust: ["official", "verified"]
     };
     ui.search.value = "";
     ui.deviceSearch.value = "";
     ui.showDeprecated.checked = false;
-    document.querySelector('input[name="channel"][value=""]').checked = true;
+    document.querySelector('input[name="channel"][value="latest"]').checked = true;
     applyFilters();
   });
 
@@ -763,6 +767,7 @@ async function load() {
 
   state.packages = packages;
   state.latestById = buildLatestIndex(state.packages);
+  state.packages = filterLatest(state.packages, state.latestById);
   state.options = collectOptions(state.packages);
 
   renderFilters();
