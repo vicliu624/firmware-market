@@ -1,7 +1,7 @@
 {
   "id": "trail-mate",
   "name": "Trail Mate",
-  "version": "v0.1.5-alpha",
+  "version": "v0.1.6-alpha",
   "tagline": "Offline LoRa team comms and GPS positioning for outdoor crews.",
   "description": "Offline-first LoRa team messaging and GPS positioning for outdoor scenarios.",
   "boards": [
@@ -20,16 +20,16 @@
     "repo": "https://github.com/vicliu624/trail-mate"
   },
   "release": {
-    "date": "2026-02-05",
-    "notes": "https://github.com/vicliu624/trail-mate/releases/tag/v0.1.5-alpha"
+    "date": "2026-02-06",
+    "notes": "https://github.com/vicliu624/trail-mate/releases/tag/v0.1.6-alpha"
   },
   "artifacts": [
     {
       "file": "firmware.bin",
       "type": "bin",
-      "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.5-alpha/firmware.bin",
-      "flash_url": "assets/firmware/trail-mate-v0.1.5-alpha.bin",
-      "sha256": "d5ee78ea3535a2d208b900709051901c15bd6c364ac9c900920bb3d045e3d91e",
+      "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.6-alpha/firmware.bin",
+      "flash_url": "assets/firmware/trail-mate-v0.1.6-alpha.bin",
+      "sha256": "3b5c56d2b8699222e082bbf9959261b42d99646cc9cb5cef02c4c49ad9cdc6d8",
       "variant": "cn470"
     }
   ],
