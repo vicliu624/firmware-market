@@ -1,6 +1,6 @@
 # Manifest Guide
 
-Add one JSON file per release under `packages/`. The filename can be any unique slug, for example:
+Keep one JSON file for the latest release of each firmware package under `packages/`. Remove older versions when publishing a new one. The filename can be any unique slug, for example:
 
 ```
 packages/mydevice-lorawan-v1.2.3.json
@@ -41,6 +41,7 @@ packages/mydevice-lorawan-v1.2.3.json
 - Fields comply with `schemas/allowed.json`
 - Artifact URLs are reachable
 - SHA256 values are correct
+- Remove older manifest files for the same `id`
 - No need to edit `manifests.json` (CI builds it)
 
 ## Example

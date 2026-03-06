@@ -7,7 +7,7 @@ A GitHub-driven firmware distribution index and static web site. Contributors su
 ```
 firmware-market/
   site/                  # Static web site (GitHub Pages)
-  packages/              # Firmware manifests (one file per release)
+  packages/              # Latest firmware manifests (one file per package)
   dist/manifests.json    # Generated manifest list for the site
   schemas/               # JSON schemas and allowed value lists
   scripts/               # Build/validation utilities
@@ -33,7 +33,7 @@ Open `dist/index.html` in a browser.
 
 ## Contributing Firmware
 
-See `packages/README.md` for the manifest format and PR checklist. CI auto-generates `dist/manifests.json` so you only need to add a new manifest file.
+See `packages/README.md` for the manifest format and PR checklist. CI auto-generates `dist/manifests.json`; keep only the latest manifest file for each firmware package.
 
 ## Governance / Trust
 
