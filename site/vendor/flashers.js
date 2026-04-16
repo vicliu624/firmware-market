@@ -35,33 +35,12 @@ function parseOffset(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-async function initializeEspLoader(loader, useStub, resetMode = "default_reset") {
-  if (useStub) {
-    await loader.main(resetMode);
-    return;
-  }
-
-  await loader.detectChip(resetMode);
-  const chipDescription = await loader.chip.getChipDescription(loader);
-  loader.info(`Chip is ${chipDescription}`);
-  loader.info(`Features: ${await loader.chip.getChipFeatures(loader)}`);
-  loader.info(`Crystal is ${await loader.chip.getCrystalFreq(loader)}MHz`);
-  loader.info(`MAC: ${await loader.chip.readMac(loader)}`);
-  if (typeof loader.chip.postConnect === "function") {
-    await loader.chip.postConnect(loader);
-  }
-  loader.info("Stub disabled. Using ROM bootloader.");
-  if (loader.romBaudrate !== loader.baudrate) {
-    await loader.changeBaud();
-  }
-}
-
-async function connectEspLoader(selectedPort, baudRate, terminal, useStub) {
+async function connectEspLoader(selectedPort, baudRate, terminal) {
   let transport = new Transport(selectedPort, true);
   let loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
 
   try {
-    await initializeEspLoader(loader, useStub);
+    await loader.main();
   } catch (err) {
     const message = String(err?.message || err || "");
     if (!message.includes("already open")) {
@@ -76,7 +55,7 @@ async function connectEspLoader(selectedPort, baudRate, terminal, useStub) {
 
     transport = new Transport(selectedPort, true);
     loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
-    await initializeEspLoader(loader, useStub);
+    await loader.main();
   }
 
   return { transport, loader };
@@ -102,7 +81,51 @@ async function resetEspTransport(transport) {
   }
 }
 
+function padBytes(bytes, multiple, padValue = 0xff) {
+  const remainder = bytes.length % multiple;
+  if (remainder === 0) return bytes;
+  const padding = new Uint8Array(multiple - remainder).fill(padValue);
+  const result = new Uint8Array(bytes.length + padding.length);
+  result.set(bytes);
+  result.set(padding, bytes.length);
+  return result;
+}
+
 async function writeEspFlash(loader, binaryString, address, progress, compress) {
+  if (!compress) {
+    const image = loader._updateImageFlashParams(
+      loader.ui8ToBstr(padBytes(loader.bstrToUi8(binaryString), 4)),
+      address,
+      "keep",
+      "keep",
+      "keep"
+    );
+    const imageBytes = loader.bstrToUi8(image);
+    const total = imageBytes.length;
+    const blocks = await loader.flashBegin(total, address);
+    const startedAt = Date.now();
+    let written = 0;
+
+    progress(0);
+    for (let seq = 0; seq < blocks; seq += 1) {
+      const offset = seq * loader.FLASH_WRITE_SIZE;
+      const chunk = imageBytes.slice(offset, offset + loader.FLASH_WRITE_SIZE);
+      const timeout = Math.max(3000, loader.timeoutPerMb(loader.ERASE_WRITE_TIMEOUT_PER_MB, chunk.length));
+      loader.info(`Writing at 0x${(address + written).toString(16)}... (${Math.floor(((seq + 1) / blocks) * 100)}%)`);
+      await loader.flashBlock(chunk, seq, timeout);
+      written += chunk.length;
+      progress(Math.min(100, Math.round((written / total) * 100)));
+    }
+
+    if (loader.IS_STUB) {
+      await loader.readReg(loader.CHIP_DETECT_MAGIC_REG_ADDR, Math.max(3000, loader.timeoutPerMb(loader.ERASE_WRITE_TIMEOUT_PER_MB, total)));
+      await loader.flashBegin(0, 0);
+    }
+    await loader.flashFinish();
+    loader.info(`Wrote ${total} bytes at 0x${address.toString(16)} in ${((Date.now() - startedAt) / 1000).toFixed(1)} seconds.`);
+    return;
+  }
+
   await loader.writeFlash({
     fileArray: [{ data: binaryString, address }],
     flashSize: "keep",
@@ -118,14 +141,9 @@ async function writeEspFlash(loader, binaryString, address, progress, compress) 
   });
 }
 
-function shouldPreferRomLoader(buffer) {
+function shouldUseCompressedFlash(buffer) {
   const size = buffer?.byteLength || 0;
-  return size >= 2 * 1024 * 1024;
-}
-
-function isCompressedWriteError(message) {
-  const text = String(message || "");
-  return text.includes("Failed to write compressed data to flash");
+  return size > 0 && size < 2 * 1024 * 1024;
 }
 
 window.FirmwareFlashers.esp32 = async ({ buffer, offset, baudRate, requestPort, port, log, progress }) => {
@@ -147,37 +165,32 @@ window.FirmwareFlashers.esp32 = async ({ buffer, offset, baudRate, requestPort, 
   try {
     const binaryString = bufferToBinaryString(buffer);
     const address = parseOffset(offset) ?? 0x10000;
-    const preferRomLoader = shouldPreferRomLoader(buffer);
-    const useStub = !preferRomLoader;
-    session = await connectEspLoader(selectedPort, baudRate, terminal, useStub);
+    const useCompression = shouldUseCompressedFlash(buffer);
+    session = await connectEspLoader(selectedPort, baudRate, terminal);
 
-    if (preferRomLoader) {
-      log("Large firmware detected. Using ROM bootloader for stability.");
-      log(`Flashing at 0x${address.toString(16)} with compression (ROM bootloader)...`);
-      await writeEspFlash(session.loader, binaryString, address, progress, true);
+    if (!useCompression) {
+      log("Large firmware detected. Using uncompressed flash for stability.");
+      log(`Flashing at 0x${address.toString(16)} without compression...`);
+      await writeEspFlash(session.loader, binaryString, address, progress, false);
     } else {
       try {
         log(`Flashing at 0x${address.toString(16)} with compression...`);
         await writeEspFlash(session.loader, binaryString, address, progress, true);
       } catch (err) {
         const message = String(err?.message || err || "");
-        if (!isCompressedWriteError(message)) {
-          throw err;
-        }
-
         log(`Compressed flash failed: ${message}`);
-        log("Reconnecting and retrying with ROM bootloader...");
+        log("Reconnecting and retrying without compression...");
         progress(0);
 
         await disconnectEspTransport(session.transport);
-        session = await connectEspLoader(selectedPort, baudRate, terminal, false);
+        session = await connectEspLoader(selectedPort, baudRate, terminal);
 
         try {
-          log(`Flashing at 0x${address.toString(16)} with compression (ROM bootloader)...`);
-          await writeEspFlash(session.loader, binaryString, address, progress, true);
+          log(`Flashing at 0x${address.toString(16)} without compression...`);
+          await writeEspFlash(session.loader, binaryString, address, progress, false);
         } catch (retryErr) {
           const retryMessage = String(retryErr?.message || retryErr || "");
-          throw new Error(`${retryMessage} (stub attempt also failed: ${message})`);
+          throw new Error(`${retryMessage} (compressed attempt also failed: ${message})`);
         }
       }
     }
