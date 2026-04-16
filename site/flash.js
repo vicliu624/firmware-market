@@ -1,15 +1,19 @@
 const params = new URLSearchParams(window.location.search);
-const firmwareUrl = params.get("url") || "";
-const firmwareName = params.get("name") || "Unknown";
-const firmwareSha = (params.get("sha") || "").toLowerCase();
-const preferredMethod = params.get("method") || "";
-const firmwareOffset = params.get("offset") || "";
-const firmwareMcu = (params.get("mcu") || "").split(",").map((m) => m.trim()).filter(Boolean);
+const manifestPath = params.get("manifest") || "";
+const requestedDeviceKey = params.get("device") || "";
+let firmwareUrl = params.get("url") || "";
+let firmwareName = params.get("name") || "Unknown";
+let firmwareSha = (params.get("sha") || "").toLowerCase();
+let preferredMethod = params.get("method") || "";
+let firmwareOffset = params.get("offset") || "";
+let firmwareMcu = (params.get("mcu") || "").split(",").map((m) => m.trim()).filter(Boolean);
 const baudRate = Number(params.get("baud") || 115200);
 
 const ui = {
   firmwareName: document.getElementById("firmware-name"),
   firmwareSha: document.getElementById("firmware-sha"),
+  deviceSelect: document.getElementById("target-device"),
+  deviceHelp: document.getElementById("device-help"),
   methodSelect: document.getElementById("flash-method"),
   downloadLink: document.getElementById("download-link"),
   warning: document.getElementById("method-warning"),
@@ -22,6 +26,12 @@ const ui = {
   dfuFlash: document.getElementById("dfu-flash"),
   progress: document.getElementById("progress"),
   log: document.getElementById("log")
+};
+
+const state = {
+  manifest: null,
+  devices: [],
+  selectedDeviceKey: ""
 };
 
 let port = null;
@@ -43,6 +53,33 @@ function normalize(value) {
   return String(value || "").toLowerCase();
 }
 
+function titleCase(value) {
+  return String(value || "")
+    .split(/[-_ ]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function formatDeviceLabel(board) {
+  if (!board) return "";
+  if (board.label) return board.label;
+  return titleCase(board.model);
+}
+
+function deviceKey(board) {
+  return `${board.brand}::${board.model}`;
+}
+
+function methodLabel(method) {
+  const labels = {
+    esp32: "ESP32 (esptool-js)",
+    rp2040: "RP2040 (UF2 drag)",
+    stm32: "STM32 (DFU WebUSB)"
+  };
+  return labels[method] || method;
+}
+
 function showPanel(method) {
   ui.panelEsp32.style.display = method === "esp32" ? "block" : "none";
   ui.panelRp2040.style.display = method === "rp2040" ? "block" : "none";
@@ -57,58 +94,211 @@ function methodForMcu(mcu) {
   return "";
 }
 
-async function loadSupportedMethods() {
-  const methods = new Set();
-  try {
-    const response = await fetch("manifests.json", { cache: "no-store" });
-    if (!response.ok) throw new Error("manifests.json not found");
-    const list = await response.json();
-    if (Array.isArray(list)) {
-      const results = await Promise.all(
-        list.map(async (path) => {
-          try {
-            const itemResponse = await fetch(path, { cache: "no-store" });
-            if (!itemResponse.ok) return null;
-            return await itemResponse.json();
-          } catch (err) {
-            return null;
-          }
-        })
-      );
-      results.filter(Boolean).forEach((item) => {
-        (item.mcu || []).forEach((mcu) => {
-          const method = methodForMcu(mcu);
-          if (method) methods.add(method);
-        });
-      });
-    }
-  } catch (err) {
-    // ignore; fallback below
-  }
-
-  if (methods.size === 0) {
-    ["esp32", "rp2040", "stm32"].forEach((method) => methods.add(method));
-  }
-  return Array.from(methods);
+function inferFlashMethod(manifest, artifact) {
+  if (artifact?.type === "uf2" || (artifact?.file || "").toLowerCase().endsWith(".uf2")) return "rp2040";
+  const mcus = (manifest?.mcu || firmwareMcu).map((mcu) => normalize(mcu));
+  if (mcus.includes("esp32") || mcus.includes("esp32-s3")) return "esp32";
+  if (mcus.includes("rp2040")) return "rp2040";
+  if (mcus.includes("stm32")) return "stm32";
+  if (artifact?.type === "hex") return "stm32";
+  return "";
 }
 
-function renderMethodOptions(methods) {
-  const labels = {
-    esp32: "ESP32 (esptool-js)",
-    rp2040: "RP2040 (UF2 drag)",
-    stm32: "STM32 (DFU WebUSB)"
-  };
-  ui.methodSelect.innerHTML = "";
-  methods.forEach((method) => {
-    const option = document.createElement("option");
-    option.value = method;
-    option.textContent = labels[method] || method;
-    ui.methodSelect.appendChild(option);
-  });
+function getFlashArtifacts(manifest) {
+  return (manifest?.artifacts || []).filter((artifact) => artifact?.flash_url || artifact?.url);
+}
+
+function artifactHasBoardTargets(artifact) {
+  return Array.isArray(artifact?.boards) && artifact.boards.length > 0;
+}
+
+function artifactMatchesBoard(artifact, board) {
+  if (!artifactHasBoardTargets(artifact) || !board?.brand || !board?.model) return false;
+  return artifact.boards.some((target) => deviceKey(target) === deviceKey(board));
+}
+
+function resolveArtifactForDevice(manifest, key) {
+  const artifacts = getFlashArtifacts(manifest);
+  const board = (manifest?.boards || []).find((candidate) => deviceKey(candidate) === key) || null;
+  if (!artifacts.length) return { board, artifact: null };
+
+  if (board) {
+    const targeted = artifacts.find((artifact) => artifactMatchesBoard(artifact, board));
+    if (targeted) return { board, artifact: targeted };
+  }
+
+  if (artifacts.length === 1) return { board, artifact: artifacts[0] };
+
+  const sharedArtifacts = artifacts.filter((artifact) => !artifactHasBoardTargets(artifact));
+  if (sharedArtifacts.length === 1) return { board, artifact: sharedArtifacts[0] };
+
+  return { board, artifact: null };
+}
+
+function collectFlashDevices(manifest) {
+  return (manifest?.boards || [])
+    .map((board) => {
+      const key = deviceKey(board);
+      const { artifact } = resolveArtifactForDevice(manifest, key);
+      return {
+        key,
+        board,
+        label: formatDeviceLabel(board),
+        artifact
+      };
+    })
+    .filter((entry) => entry.artifact);
 }
 
 function browserSupport() {
   return "serial" in navigator;
+}
+
+function updateActionState() {
+  const hasFirmware = Boolean(firmwareUrl);
+  ui.flash.disabled = !hasFirmware;
+  ui.dfuFlash.disabled = !hasFirmware;
+  ui.connect.disabled = !browserSupport();
+  ui.dfuConnect.disabled = !navigator.usb;
+}
+
+function updateDownloadLink() {
+  if (firmwareUrl) {
+    ui.downloadLink.href = firmwareUrl;
+    ui.downloadLink.classList.remove("disabled");
+  } else {
+    ui.downloadLink.href = "#";
+    ui.downloadLink.classList.add("disabled");
+  }
+}
+
+function updateFirmwareMeta() {
+  ui.firmwareName.textContent = firmwareName;
+  ui.firmwareSha.textContent = firmwareSha ? `${firmwareSha.slice(0, 12)}...` : "-";
+  updateDownloadLink();
+  updateActionState();
+}
+
+function syncWarning(method) {
+  const warnings = [];
+  if (state.manifest && state.devices.length > 1 && !state.selectedDeviceKey) {
+    warnings.push("Select a device to load the matching firmware artifact.");
+  }
+
+  const recommendedMethod = preferredMethod || firmwareMcu.map(methodForMcu).find(Boolean) || "";
+  if (recommendedMethod && method && recommendedMethod !== method) {
+    warnings.push(`Selected firmware expects ${methodLabel(recommendedMethod)}.`);
+  }
+
+  if (method === "rp2040" && firmwareUrl && !firmwareUrl.toLowerCase().endsWith(".uf2")) {
+    warnings.push("RP2040 requires a UF2 file. Current firmware is not .uf2.");
+  }
+  if (method === "stm32" && !navigator.usb) {
+    warnings.push("WebUSB is not supported in this browser.");
+  }
+  if (method === "esp32" && firmwareUrl && !browserSupport()) {
+    warnings.push("WebSerial is not supported in this browser.");
+  }
+
+  setWarning(warnings.join(" "));
+}
+
+function updateMethod(method) {
+  showPanel(method);
+  syncWarning(method);
+  updateActionState();
+}
+
+function renderMethodOptions() {
+  const methods = ["esp32", "rp2040", "stm32"];
+  ui.methodSelect.innerHTML = "";
+  methods.forEach((method) => {
+    const option = document.createElement("option");
+    option.value = method;
+    option.textContent = methodLabel(method);
+    ui.methodSelect.appendChild(option);
+  });
+}
+
+function renderLegacyDeviceState(message) {
+  ui.deviceSelect.innerHTML = "";
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = "Direct firmware URL";
+  ui.deviceSelect.appendChild(option);
+  ui.deviceSelect.disabled = true;
+  ui.deviceHelp.textContent = message;
+}
+
+function renderDeviceOptions(devices) {
+  ui.deviceSelect.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = devices.length > 1 ? "Select device" : "Matched device";
+  ui.deviceSelect.appendChild(placeholder);
+
+  devices.forEach((device) => {
+    const option = document.createElement("option");
+    option.value = device.key;
+    option.textContent = device.label;
+    ui.deviceSelect.appendChild(option);
+  });
+
+  ui.deviceSelect.disabled = devices.length <= 1;
+  if (!devices.length) {
+    ui.deviceHelp.textContent = "This package does not expose any flashable device targets.";
+  } else if (devices.length === 1) {
+    ui.deviceHelp.textContent = `Firmware matched automatically for ${devices[0].label}.`;
+  } else {
+    ui.deviceHelp.textContent = "Select the target board to match the correct firmware.";
+  }
+}
+
+function applyDeviceSelection(key) {
+  state.selectedDeviceKey = key;
+  if (!state.manifest) return;
+
+  if (!key) {
+    firmwareName = state.manifest.name || params.get("name") || "Unknown";
+    firmwareUrl = "";
+    firmwareSha = "";
+    firmwareOffset = "";
+    preferredMethod = "";
+    firmwareMcu = (state.manifest.mcu || []).map((m) => String(m).trim()).filter(Boolean);
+    updateFirmwareMeta();
+    updateMethod(ui.methodSelect.value);
+    return;
+  }
+
+  const { board, artifact } = resolveArtifactForDevice(state.manifest, key);
+  if (!artifact) {
+    firmwareName = state.manifest.name || params.get("name") || "Unknown";
+    firmwareUrl = "";
+    firmwareSha = "";
+    firmwareOffset = "";
+    preferredMethod = "";
+    firmwareMcu = (state.manifest.mcu || []).map((m) => String(m).trim()).filter(Boolean);
+    updateFirmwareMeta();
+    updateMethod(ui.methodSelect.value);
+    return;
+  }
+
+  const method = inferFlashMethod(state.manifest, artifact);
+  firmwareName = board ? `${state.manifest.name} (${formatDeviceLabel(board)})` : state.manifest.name || firmwareName;
+  firmwareUrl = artifact.flash_url || artifact.url || "";
+  firmwareSha = (artifact.sha256 || "").toLowerCase();
+  firmwareOffset = artifact.flash?.offset || (method === "esp32" ? "0x10000" : "");
+  preferredMethod = method || "";
+  firmwareMcu = (state.manifest.mcu || []).map((m) => String(m).trim()).filter(Boolean);
+  updateFirmwareMeta();
+  if (preferredMethod) ui.methodSelect.value = preferredMethod;
+  updateMethod(ui.methodSelect.value);
+}
+
+async function loadManifest(path) {
+  const response = await fetch(path, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Manifest not found (${response.status})`);
+  return await response.json();
 }
 
 async function connectPort() {
@@ -191,41 +381,42 @@ async function flashEsp32() {
   }
 }
 
-function updateDownloadLink() {
-  if (firmwareUrl) {
-    ui.downloadLink.href = firmwareUrl;
-    ui.downloadLink.classList.remove("disabled");
-  } else {
-    ui.downloadLink.href = "#";
-    ui.downloadLink.classList.add("disabled");
-  }
-}
-
-function updateMethod(method) {
-  showPanel(method);
-  setWarning("");
-  if (method === "rp2040") {
-    if (firmwareUrl && !firmwareUrl.toLowerCase().endsWith(".uf2")) {
-      setWarning("RP2040 requires a UF2 file. Current firmware is not .uf2.");
-    }
-  }
-  if (method === "stm32") {
-    if (!navigator.usb) setWarning("WebUSB is not supported in this browser.");
-  }
-}
-
 async function init() {
-  ui.firmwareName.textContent = firmwareName;
-  ui.firmwareSha.textContent = firmwareSha ? firmwareSha.slice(0, 12) + "..." : "-";
+  renderMethodOptions();
+  updateFirmwareMeta();
 
-  const availableMethods = await loadSupportedMethods();
-  renderMethodOptions(availableMethods);
-  const inferred = firmwareMcu.map(methodForMcu).find(Boolean) || "";
-  ui.methodSelect.value = preferredMethod || inferred || ui.methodSelect.value;
+  if (manifestPath) {
+    try {
+      state.manifest = await loadManifest(manifestPath);
+      state.devices = collectFlashDevices(state.manifest);
+      firmwareName = state.manifest.name || firmwareName;
+      firmwareMcu = (state.manifest.mcu || []).map((m) => String(m).trim()).filter(Boolean);
+      renderDeviceOptions(state.devices);
 
-  updateDownloadLink();
+      const initialDevice =
+        state.devices.find((device) => device.key === requestedDeviceKey)?.key ||
+        (state.devices.length === 1 ? state.devices[0].key : "");
+      if (initialDevice) {
+        ui.deviceSelect.value = initialDevice;
+        applyDeviceSelection(initialDevice);
+      } else {
+        updateFirmwareMeta();
+      }
+    } catch (err) {
+      renderLegacyDeviceState("Failed to load package metadata. Falling back to the direct firmware link.");
+      setWarning(`Manifest load failed: ${err.message || err}`);
+    }
+  } else {
+    renderLegacyDeviceState("This launch uses a direct firmware URL, so no device selection is available.");
+  }
+
+  const inferred = firmwareMcu.map(methodForMcu).find(Boolean) || preferredMethod || ui.methodSelect.value;
+  ui.methodSelect.value = inferred || ui.methodSelect.value;
   updateMethod(ui.methodSelect.value);
 
+  ui.deviceSelect.addEventListener("change", (event) => {
+    applyDeviceSelection(event.target.value);
+  });
   ui.methodSelect.addEventListener("change", (event) => updateMethod(event.target.value));
   ui.connect.addEventListener("click", connectPort);
   ui.flash.addEventListener("click", flashEsp32);
@@ -246,8 +437,10 @@ async function init() {
     }
   });
 
-  if (!firmwareUrl) {
+  if (!firmwareUrl && !state.manifest) {
     log("No firmware URL provided. Use the catalog to launch this page.");
+  } else if (!firmwareUrl && state.manifest && state.devices.length > 1) {
+    log("Select a device to load the matching firmware.");
   }
 }
 

@@ -26,6 +26,7 @@ packages/mydevice-lorawan-v1.2.3.json
 - `release` (date, notes)
 - `artifacts` (array of files with url + sha256)
   - Optional `flash_url` for same-origin Web Flash (avoid CORS issues)
+  - Optional `boards` per artifact when different device models need different firmware files
 
 ## Optional Fields
 
@@ -73,11 +74,21 @@ packages/mydevice-lorawan-v1.2.3.json
   },
   "artifacts": [
     {
-      "file": "firmware.bin",
+      "file": "firmware-tdeck.bin",
       "type": "bin",
-      "url": "https://github.com/example/repo/releases/download/v1.0.0/firmware.bin",
+      "url": "https://github.com/example/repo/releases/download/v1.0.0/firmware-tdeck.bin",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "variant": "us915",
+      "boards": [{ "brand": "lilygo", "model": "t-deck", "label": "T-Deck" }],
+      "variant": "tdeck",
+      "flash": { "offset": "0x0" }
+    },
+    {
+      "file": "firmware-tlora-pager.bin",
+      "type": "bin",
+      "url": "https://github.com/example/repo/releases/download/v1.0.0/firmware-tlora-pager.bin",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "boards": [{ "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" }],
+      "variant": "tlora-pager",
       "flash": { "offset": "0x0" }
     }
   ]

@@ -44,6 +44,7 @@ def validate_allowed(manifest, allowed):
     if not allowed:
         return
     errors = []
+
     def check_list(key, allowed_key):
         values = manifest.get(key) or []
         allowed_values = set(allowed.get(allowed_key, []))
@@ -51,23 +52,52 @@ def validate_allowed(manifest, allowed):
             if value not in allowed_values:
                 errors.append(f"{key}: '{value}' is not in allowed list")
 
-    def check_boards():
-        boards = manifest.get("boards") or []
+    def check_boards(boards, prefix):
         allowed_brands = set(allowed.get("brands", []))
         allowed_models = set(allowed.get("models", []))
         for board in boards:
             brand = board.get("brand")
             model = board.get("model")
             if allowed_brands and brand not in allowed_brands:
-                errors.append(f"boards.brand: '{brand}' is not in allowed list")
+                errors.append(f"{prefix}.brand: '{brand}' is not in allowed list")
             if allowed_models and model not in allowed_models:
-                errors.append(f"boards.model: '{model}' is not in allowed list")
+                errors.append(f"{prefix}.model: '{model}' is not in allowed list")
 
-    check_boards()
+    check_boards(manifest.get("boards") or [], "boards")
+    for index, artifact in enumerate(manifest.get("artifacts") or []):
+        artifact_boards = artifact.get("boards") or []
+        if artifact_boards:
+            check_boards(artifact_boards, f"artifacts[{index}].boards")
     check_list("mcu", "mcus")
     check_list("regions", "regions")
     check_list("features", "features")
     check_list("scenes", "scenes")
+
+    if errors:
+        raise ValueError("; ".join(errors))
+
+
+def validate_artifact_targets(manifest):
+    package_boards = {
+        (board.get("brand"), board.get("model"))
+        for board in (manifest.get("boards") or [])
+        if board.get("brand") and board.get("model")
+    }
+    if not package_boards:
+        return
+
+    errors = []
+    for index, artifact in enumerate(manifest.get("artifacts") or []):
+        for board in artifact.get("boards") or []:
+            key = (board.get("brand"), board.get("model"))
+            if key not in package_boards:
+                errors.append(
+                    "artifacts[{index}].boards includes '{brand}/{model}' which is not declared in top-level boards".format(
+                        index=index,
+                        brand=board.get("brand", ""),
+                        model=board.get("model", ""),
+                    )
+                )
 
     if errors:
         raise ValueError("; ".join(errors))
@@ -182,6 +212,7 @@ def main():
             manifest = json.load(f)
         validate_schema(manifest, schema)
         validate_allowed(manifest, allowed)
+        validate_artifact_targets(manifest)
         manifest["source"] = os.path.relpath(path, ROOT).replace("\\", "/")
 
         key = (manifest.get("id"), manifest.get("version"))

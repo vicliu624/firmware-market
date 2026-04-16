@@ -1,11 +1,12 @@
 {
   "id": "trail-mate",
   "name": "Trail Mate",
-  "version": "v0.1.14-alpha",
+  "version": "v0.1.15-alpha",
   "tagline": "Offline LoRa team comms and GPS positioning for outdoor crews.",
   "description": "Offline-first LoRa team messaging and GPS positioning for outdoor scenarios.",
   "boards": [
-    { "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" }
+    { "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" },
+    { "brand": "lilygo", "model": "t-deck", "label": "T-Deck" }
   ],
   "mcu": ["esp32"],
   "features": ["mesh", "team", "gps"],
@@ -20,18 +21,33 @@
     "repo": "https://github.com/vicliu624/trail-mate"
   },
   "release": {
-    "date": "2026-04-13",
-    "notes": "https://github.com/vicliu624/trail-mate/releases/tag/v0.1.14-alpha"
+    "date": "2026-04-16",
+    "notes": "https://github.com/vicliu624/trail-mate/releases/tag/v0.1.15-alpha"
   },
   "artifacts": [
     {
-      "file": "trail-mate-tlora_pager_sx1262-v0.1.14-alpha.bin",
+      "file": "trail-mate-tlora_pager_sx1262-v0.1.15-alpha.bin",
       "type": "bin",
-      "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.14-alpha/trail-mate-tlora_pager_sx1262-v0.1.14-alpha.bin",
-      "flash_url": "assets/firmware/trail-mate-v0.1.14-alpha.bin",
-      "sha256": "ff32393ec399fdad1ae020200a54b9f0cf703c90b998f1e6597271e523c02438",
-      "size": 3644032,
-      "variant": "tlora_pager_sx1262"
+      "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.15-alpha/trail-mate-tlora_pager_sx1262-v0.1.15-alpha.bin",
+      "flash_url": "assets/firmware/trail-mate-tlora_pager_sx1262-v0.1.15-alpha.bin",
+      "sha256": "8e53582f3d6df3c6d9ce573ae9fcf7eb5759607befb3696147dd0bceda2b03c5",
+      "size": 3655584,
+      "variant": "tlora_pager_sx1262",
+      "boards": [
+        { "brand": "lilygo", "model": "t-lora-pager", "label": "T-LoRa Pager" }
+      ]
+    },
+    {
+      "file": "trail-mate-tdeck-v0.1.15-alpha.bin",
+      "type": "bin",
+      "url": "https://github.com/vicliu624/trail-mate/releases/download/v0.1.15-alpha/trail-mate-tdeck-v0.1.15-alpha.bin",
+      "flash_url": "assets/firmware/trail-mate-tdeck-v0.1.15-alpha.bin",
+      "sha256": "10f21204df3d1243dbb8f8951379059d118d1da00310d51277b85a0a4a33b12f",
+      "size": 3200080,
+      "variant": "tdeck",
+      "boards": [
+        { "brand": "lilygo", "model": "t-deck", "label": "T-Deck" }
+      ]
     }
   ],
   "poster": {

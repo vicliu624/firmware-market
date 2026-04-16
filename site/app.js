@@ -267,6 +267,80 @@ function inferFlashMethod(item, artifact) {
   return "";
 }
 
+function formatVersionLabel(version) {
+  const value = String(version || "");
+  if (!value) return "-";
+  return value.startsWith("v") ? value : `v${value}`;
+}
+
+function getFlashArtifacts(item) {
+  return (item.artifacts || []).filter((artifact) => artifact?.flash_url || artifact?.url);
+}
+
+function artifactHasBoardTargets(artifact) {
+  return Array.isArray(artifact?.boards) && artifact.boards.length > 0;
+}
+
+function artifactMatchesBoard(artifact, board) {
+  if (!artifactHasBoardTargets(artifact) || !board?.brand || !board?.model) return false;
+  return artifact.boards.some((target) => deviceKey(target) === deviceKey(board));
+}
+
+function findBoardForKey(item, key) {
+  return (item.boards || []).find((board) => deviceKey(board) === key) || null;
+}
+
+function preferredBoardForItem(item) {
+  if (state.filters.device) {
+    const selected = findBoardForKey(item, state.filters.device);
+    if (selected) return selected;
+  }
+  if ((item.boards || []).length === 1) return item.boards[0];
+  return null;
+}
+
+function resolveArtifactForBoard(item, board) {
+  const artifacts = getFlashArtifacts(item);
+  if (!artifacts.length) return null;
+
+  if (board) {
+    const targeted = artifacts.find((artifact) => artifactMatchesBoard(artifact, board));
+    if (targeted) return targeted;
+  }
+
+  if (artifacts.length === 1) return artifacts[0];
+
+  const sharedArtifacts = artifacts.filter((artifact) => !artifactHasBoardTargets(artifact));
+  if (sharedArtifacts.length === 1) return sharedArtifacts[0];
+
+  return artifacts[0];
+}
+
+function buildLegacyFlashHref(item, artifact) {
+  if (!artifact) return "#";
+  const method = inferFlashMethod(item, artifact);
+  const mcuParam = (item.mcu || []).join(",");
+  const flashSource = artifact.flash_url || artifact.url || "";
+  const flashOffset = artifact.flash?.offset || (method === "esp32" ? "0x10000" : "");
+  if (!flashSource) return "#";
+  return `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}${flashOffset ? `&offset=${encodeURIComponent(flashOffset)}` : ""}`;
+}
+
+function buildFlashHref(item, board = preferredBoardForItem(item)) {
+  const artifacts = getFlashArtifacts(item);
+  if (!artifacts.length) return "#";
+
+  if (item.source) {
+    const params = new URLSearchParams();
+    params.set("manifest", item.source);
+    params.set("name", item.name || "Unknown");
+    if (board) params.set("device", deviceKey(board));
+    return `flash.html?${params.toString()}`;
+  }
+
+  return buildLegacyFlashHref(item, resolveArtifactForBoard(item, board));
+}
+
 function applyFilters() {
   const search = normalize(state.filters.search);
 
@@ -431,15 +505,8 @@ function renderCards() {
     const featureChips = features.map((f) => `<span class="chip">${f}</span>`).join("") +
       (moreFeatures > 0 ? `<span class="chip">+${moreFeatures}</span>` : "");
 
-    const artifact = (item.artifacts || [])[0] || {};
-    const method = inferFlashMethod(item, artifact);
-    const mcuParam = (item.mcu || []).join(",");
-    const flashSource = artifact.flash_url || artifact.url || "";
-    const flashOffset = artifact.flash?.offset || (method === "esp32" ? "0x10000" : "");
-    const flashHref = flashSource
-      ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}${flashOffset ? `&offset=${encodeURIComponent(flashOffset)}` : ""}`
-      : "#";
-    const flashLink = flashSource
+    const flashHref = buildFlashHref(item);
+    const flashLink = flashHref !== "#"
       ? `<a class="btn ghost" href="${flashHref}">Flash</a>`
       : `<span class="btn ghost disabled">Flash</span>`;
 
@@ -462,7 +529,7 @@ function renderCards() {
         <div class="chip-row">${featureChips}</div>
         <div class="card-meta">
           <div class="publisher">${avatar}<span>${item.publisher?.name || ""}</span></div>
-          <div>v${item.version} ? ${item.release?.date || ""}</div>
+          <div>${formatVersionLabel(item.version)} ? ${item.release?.date || ""}</div>
         </div>
         <div class="card-actions">
           <button class="btn primary" data-action="details">Details</button>
@@ -558,20 +625,23 @@ function openDrawer(item) {
       ? '<div class="detail-warning">Community build. Verify compatibility and hashes before flashing.</div>'
       : "";
 
-  const artifact = (item.artifacts || [])[0] || {};
+  const preferredBoard = preferredBoardForItem(item);
+  const artifact = resolveArtifactForBoard(item, preferredBoard) || {};
   const canFlash = "serial" in navigator;
   const method = inferFlashMethod(item, artifact);
   let flashLabel = "CLI";
   if (method === "esp32") flashLabel = canFlash ? "Web Flash (ESP32) / CLI" : "CLI";
   if (method === "rp2040") flashLabel = "UF2 Drag / CLI";
   if (method === "stm32") flashLabel = navigator.usb ? "Web DFU / CLI" : "CLI (DFU)";
-  const mcuParam = (item.mcu || []).join(",");
-  const flashSource = artifact.flash_url || artifact.url || "";
-  const flashOffset = artifact.flash?.offset || (method === "esp32" ? "0x10000" : "");
-  const flashHref = flashSource
-    ? `flash.html?url=${encodeURIComponent(flashSource)}&sha=${artifact.sha256 || ""}&name=${encodeURIComponent(item.name)}&method=${encodeURIComponent(method)}&mcu=${encodeURIComponent(mcuParam)}${flashOffset ? `&offset=${encodeURIComponent(flashOffset)}` : ""}`
-    : "#";
-  const flashLink = flashSource ? `<a class="btn primary" href="${flashHref}">Flash</a>` : "";
+  const flashHref = buildFlashHref(item, preferredBoard);
+  const flashLink = flashHref !== "#" ? `<a class="btn primary" href="${flashHref}">Flash</a>` : "";
+  const showDirectDownload = Boolean(artifact.url) && (preferredBoard || getFlashArtifacts(item).length <= 1);
+  const shaLabel =
+    artifact.sha256 && (preferredBoard || getFlashArtifacts(item).length <= 1)
+      ? artifact.sha256
+      : getFlashArtifacts(item).length > 1
+        ? "Select a device in Web Flash"
+        : "-";
 
   ui.drawerBody.innerHTML = `
     <div class="detail-hero">
@@ -582,13 +652,13 @@ function openDrawer(item) {
         <p class="card-tagline">${item.tagline || item.description || ""}</p>
         <div class="detail-actions">
           ${flashLink}
-          ${artifact.url ? `<a class="btn ghost" href="${artifact.url}">Download</a>` : ""}
+          ${showDirectDownload ? `<a class="btn ghost" href="${artifact.url}">Download</a>` : ""}
           ${item.release?.notes ? `<a class="btn ghost" href="${item.release.notes}">Release notes</a>` : ""}
         </div>
         <div class="detail-stats">
           <div class="detail-stat"><strong>${(item.boards || []).length}</strong> devices</div>
           <div class="detail-stat"><strong>${(item.features || []).length}</strong> features</div>
-          <div class="detail-stat"><strong>v${item.version}</strong> ? ${item.release?.date || ""}</div>
+          <div class="detail-stat"><strong>${formatVersionLabel(item.version)}</strong> ? ${item.release?.date || ""}</div>
         </div>
       </div>
     </div>
@@ -612,7 +682,7 @@ function openDrawer(item) {
         <div><strong>Regions:</strong> ${(item.regions || []).join(", ") || "-"}</div>
         <div><strong>MCU:</strong> ${(item.mcu || []).join(", ") || "-"}</div>
         <div><strong>Flashing:</strong> ${flashLabel}</div>
-        <div><strong>SHA256:</strong> ${artifact.sha256 || "-"}</div>
+        <div><strong>SHA256:</strong> ${shaLabel}</div>
         <div><strong>Source:</strong> <a href="${item.release?.notes || "#"}">Release</a></div>
       </div>
     </div>
@@ -738,7 +808,9 @@ async function load() {
             try {
               const itemResponse = await fetch(path, { cache: "no-store" });
               if (!itemResponse.ok) return null;
-              return await itemResponse.json();
+              const item = await itemResponse.json();
+              item.source = path;
+              return item;
             } catch (err) {
               return null;
             }

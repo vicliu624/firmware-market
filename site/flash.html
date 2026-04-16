@@ -21,13 +21,20 @@
           <p class="eyebrow">Web Flash (multi-device)</p>
           <h1>Flash firmware from your browser.</h1>
           <p class="lead">
-            Choose your device family first. The flasher will match the correct
-            protocol (ESP32 esptool, RP2040 UF2 drag, or STM32 DFU WebUSB).
+            Choose the exact device first. The flasher will load the matching
+            firmware artifact and the correct protocol for that board.
           </p>
         </div>
         <div class="hero-panel">
           <div class="stat">
             <span class="stat-label">Device</span>
+            <select id="target-device" class="select">
+              <option value="">Select device</option>
+            </select>
+            <p class="muted" id="device-help">Select the target board to match the correct firmware.</p>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Flash Method</span>
             <select id="flash-method" class="select">
               <option value="esp32">ESP32 (esptool-js)</option>
               <option value="rp2040">RP2040 (UF2 drag)</option>
