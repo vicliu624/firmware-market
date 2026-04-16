@@ -35,6 +35,73 @@ function parseOffset(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+async function connectEspLoader(selectedPort, baudRate, terminal) {
+  let transport = new Transport(selectedPort, true);
+  let loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
+
+  try {
+    await loader.main();
+  } catch (err) {
+    const message = String(err?.message || err || "");
+    if (!message.includes("already open")) {
+      throw err;
+    }
+
+    try {
+      await selectedPort.close();
+    } catch (closeErr) {
+      // ignore close failures
+    }
+
+    transport = new Transport(selectedPort, true);
+    loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
+    await loader.main();
+  }
+
+  return { transport, loader };
+}
+
+async function disconnectEspTransport(transport) {
+  if (!transport) return;
+  try {
+    await transport.disconnect();
+  } catch (err) {
+    // ignore disconnect failures
+  }
+}
+
+async function resetEspTransport(transport) {
+  if (!transport) return;
+  try {
+    await transport.setRTS(true);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    await transport.setRTS(false);
+  } catch (err) {
+    // ignore reset failures
+  }
+}
+
+async function writeEspFlash(loader, binaryString, address, progress, compress) {
+  await loader.writeFlash({
+    fileArray: [{ data: binaryString, address }],
+    flashSize: "keep",
+    eraseAll: false,
+    compress,
+    flashMode: "keep",
+    flashFreq: "keep",
+    reportProgress: (fileIndex, written, total) => {
+      if (typeof total === "number" && total > 0) {
+        progress(Math.min(100, Math.round((written / total) * 100)));
+      }
+    }
+  });
+}
+
+function shouldUseCompressedFlash(buffer) {
+  const size = buffer?.byteLength || 0;
+  return size > 0 && size < 2 * 1024 * 1024;
+}
+
 window.FirmwareFlashers.esp32 = async ({ buffer, offset, baudRate, requestPort, port, log, progress }) => {
   const terminal = {
     log: (msg) => log(String(msg)),
@@ -49,60 +116,44 @@ window.FirmwareFlashers.esp32 = async ({ buffer, offset, baudRate, requestPort, 
   };
 
   const selectedPort = port || (await requestPort());
-  let transport = null;
+  let session = null;
 
   try {
-    transport = new Transport(selectedPort, true);
-    const loader = new ESPLoader({ transport, baudrate: baudRate, terminal });
-
-    try {
-      await loader.main();
-    } catch (err) {
-      const message = String(err?.message || err || "");
-      if (message.includes("already open")) {
-        try {
-          await selectedPort.close();
-        } catch (closeErr) {
-          // ignore close failures
-        }
-        await loader.main();
-      } else {
-        throw err;
-      }
-    }
-
     const binaryString = bufferToBinaryString(buffer);
     const address = parseOffset(offset) ?? 0x10000;
-    log(`Flashing at 0x${address.toString(16)}...`);
-    await loader.writeFlash({
-      fileArray: [{ data: binaryString, address }],
-      flashSize: "keep",
-      eraseAll: false,
-      compress: true,
-      flashMode: "keep",
-      flashFreq: "keep",
-      reportProgress: (fileIndex, written, total) => {
-        if (typeof total === "number" && total > 0) {
-          progress(Math.min(100, Math.round((written / total) * 100)));
+    const useCompression = shouldUseCompressedFlash(buffer);
+    session = await connectEspLoader(selectedPort, baudRate, terminal);
+
+    if (!useCompression) {
+      log("Large firmware detected. Using uncompressed flash for stability.");
+      log(`Flashing at 0x${address.toString(16)} without compression...`);
+      await writeEspFlash(session.loader, binaryString, address, progress, false);
+    } else {
+      try {
+        log(`Flashing at 0x${address.toString(16)} with compression...`);
+        await writeEspFlash(session.loader, binaryString, address, progress, true);
+      } catch (err) {
+        const message = String(err?.message || err || "");
+        log(`Compressed flash failed: ${message}`);
+        log("Reconnecting and retrying without compression...");
+        progress(0);
+
+        await disconnectEspTransport(session.transport);
+        session = await connectEspLoader(selectedPort, baudRate, terminal);
+
+        try {
+          log(`Flashing at 0x${address.toString(16)} without compression...`);
+          await writeEspFlash(session.loader, binaryString, address, progress, false);
+        } catch (retryErr) {
+          const retryMessage = String(retryErr?.message || retryErr || "");
+          throw new Error(`${retryMessage} (compressed attempt also failed: ${message})`);
         }
       }
-    });
+    }
 
-    try {
-      await transport.setRTS(true);
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      await transport.setRTS(false);
-    } catch (err) {
-      // ignore reset failures
-    }
+    await resetEspTransport(session.transport);
   } finally {
-    if (transport) {
-      try {
-        await transport.disconnect();
-      } catch (err) {
-        // ignore disconnect failures
-      }
-    }
+    await disconnectEspTransport(session?.transport);
   }
 };
 
